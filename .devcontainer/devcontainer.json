@@ -1,0 +1,11 @@
+{
+  "features": {
+    "ghcr.io/guiyomh/features/just:0": {},
+    "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+      "packages": "ripgrep"
+    },
+    "ghcr.io/devcontainers-extra/features/npm-packages:1": {
+      "packages": "@openai/codex"
+    }
+  }
+}
