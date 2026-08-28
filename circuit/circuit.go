@@ -60,6 +60,28 @@ func MkNotGate(inWire *wire.Wire, outWire *wire.Wire) Component {
 	return gate
 }
 
+func MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) Component {
+	gate := Component{
+		inputWires: map[*wire.Wire]struct{}{},
+	}
+	gate.inputWires[in1] = struct{}{}
+	gate.inputWires[in2] = struct{}{}
+
+	gate.processChangeLogic = func(ch Change) []Change {
+		return []Change{
+			{
+				Time: ch.Time + gateDelay,
+				Wire: out,
+
+				// TODO - incorrect - this looks up old signals instead of taking into account new values from the change
+				Signal: bool(in1.Signal()) && bool(in2.Signal()),
+			},
+		}
+	}
+
+	return gate
+}
+
 type Circuit struct {
 	wires      map[string]*wire.Wire // wires by name
 	components []Component
