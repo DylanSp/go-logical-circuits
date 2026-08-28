@@ -21,11 +21,12 @@ func (ch Change) String() string {
 const gateDelay = 2
 
 type Component struct {
-	inputWires map[*wire.Wire]struct{} // use a set to enforce uniqueness
+	// used for checking if a change affects this component
+	// uses a set to enforce uniqueness
+	inputWires map[*wire.Wire]struct{}
 
 	// internal logic for responding to changes
-	// TODO - should this be responsible for setting output wires' values?
-	// TODO - or should that be handled in executeChange()?
+	// does *not* update wires' states; Circuit.ExecuteChanges() will take the changes from this and update states appropriately
 	processChangeLogic func(Change) []Change
 }
 
@@ -112,12 +113,11 @@ func (cir *Circuit) executeChange(ch Change) []Change {
 	for _, com := range cir.components {
 		changeResults := com.HandleChange(ch)
 		for _, chResult := range changeResults {
-			// TODO - right now, this is responsible for updating wires' value; should it be?
+			fmt.Printf("Calling SetSignal on wire %v with value %v\n", chResult.Wire, chResult.Signal)
 			chResult.Wire.SetSignal(wire.Signal(chResult.Signal))
+
 			downstreamChanges = append(downstreamChanges, chResult)
 		}
-
-		// downstreamChanges = append(downstreamChanges, com.HandleChange(ch)...)
 	}
 
 	return downstreamChanges
@@ -126,23 +126,24 @@ func (cir *Circuit) executeChange(ch Change) []Change {
 // propagate a single change through the circuit until it stabilizes
 // TODO - how to handle cases where circuit never stabilizes?
 // TODO - return an iterator of some sort?
-func (cir *Circuit) Propagate(ch Change) {
+func (cir *Circuit) Propagate(initialChange Change) {
 	agenda := NewChangeQueue()
-	agenda.AddChange(ch)
+	agenda.AddChange(initialChange)
 
-	fmt.Printf("Propagating from change at t=%v\n", ch.Time)
+	fmt.Printf("Propagating from change at t=%v\n", initialChange.Time)
 
 	for agenda.Length() > 0 {
 		nextChanges, _ := agenda.GetNextChanges()
 
+		// TODO - how to handle the case where there is >1 nextChange at the same time?
+		// TODO - check for possibility of overlap and resolve/combine somehow?
 		for _, nextChange := range nextChanges {
-			prevSignal := cir.wires[ch.Wire.Name()].Signal()
-			fmt.Printf("Previous signal of wire %v: %v\n", ch.Wire, prevSignal)
-			fmt.Printf("New signal of wire %v: %v\n", ch.Wire, nextChange.Signal)
+			// TODO - having this check messes with circuit initialization
 
-			if prevSignal == wire.Signal(nextChange.Signal) {
-				continue // no actual change in signal => no-op
-			}
+			// if prevSignal == wire.Signal(newSignal) {
+			// 	continue // no actual change in signal => no-op
+			// }
+
 			downstreamChanges := cir.executeChange(nextChange)
 			for _, downstream := range downstreamChanges {
 				agenda.AddChange(downstream)

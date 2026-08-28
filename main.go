@@ -14,6 +14,19 @@ func main() {
 	cir.AddComponents(notGate1)
 
 	// TODO - need a way to initialize circuit with initial values of input wires
+	// TODO - have Circuit track its input wires, add an Initialize method that sets all input wires to low, then calls Propagate()?
+	// TODO - may need to ignore/eliminate no-op check in Propagate upon initialization, to make sure initial values are correct
+
+	fmt.Println("Initializing circuit")
+
+	// initialize circuit
+	change0 := circuit.Change{
+		Time:   0,
+		Wire:   in1,
+		Signal: false,
+	}
+	cir.Propagate(change0)
+	fmt.Printf("Circuit initialized\n\n")
 
 	fmt.Printf("Initial state of out1 wire: %v\n\n", out1.Signal())
 
