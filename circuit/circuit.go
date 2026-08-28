@@ -1,26 +1,15 @@
 package circuit
 
-import "fmt"
+import (
+	"fmt"
 
-type Wire struct {
-	name string
-}
-
-func (w Wire) Name() string {
-	return w.name
-}
-
-// implement stringer interface
-func (w Wire) String() string {
-	return w.Name()
-}
-
-// signals will be represented as booleans for now
+	"github.com/DylanSp/go-logical-circuits/circuit/wire"
+)
 
 // single change in a single wire
 type Change struct {
 	Time   int
-	Wire   Wire
+	Wire   wire.Wire
 	Signal bool
 }
 
@@ -28,14 +17,21 @@ func (ch Change) String() string {
 	return fmt.Sprintf("%v (t=%v) new value: %v", ch.Wire, ch.Time, ch.Signal)
 }
 
+// processing delay of a single gate (of any time)
+const gateDelay = 2
+
 // placeholder type;
 // if I follow Haskell model, Components are functions that take a Change and a WireState, returning downstream changes
-type Component int
+type Component struct {
+	inputWires []*wire.Wire
+}
 
-// TODO - tracking wire state
-// should Wires track their own state, then Circuit.wireState can just have a set of wires?
+func (c Component) ProcessChange(ch Change) {
+
+}
+
 type Circuit struct {
-	wireState  map[Wire]bool
+	wireState  map[string]*wire.Wire // wires by name
 	components []Component
 
 	internalWireCount int
@@ -46,25 +42,19 @@ func (cir *Circuit) AddComponents(components ...Component) {
 }
 
 func (cir *Circuit) AddWire(wireName string) {
-	newWire := Wire{
-		name: wireName,
+	_, hasWire := cir.wireState[wireName]
+	if hasWire {
+		panic(fmt.Sprintf("Wire %v already present", wireName))
 	}
 
-	_, ok := cir.wireState[newWire]
-	if ok {
-		panic(fmt.Sprintf("Wire %v already present", wireName))
-	} else {
-		cir.wireState[newWire] = false
-	}
+	newWire := wire.New(wireName)
+	cir.wireState[wireName] = &newWire
 }
 
 // used for adding internal wires inside components
 // TODO - does this need to be exported?
 func (cir *Circuit) AddInternalWire() {
-	newWire := Wire{
-		name: fmt.Sprintf("internal-%v", cir.internalWireCount),
-	}
-	cir.wireState[newWire] = false
-
+	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
+	cir.AddWire(wireName)
 	cir.internalWireCount++
 }
