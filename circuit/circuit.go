@@ -8,7 +8,9 @@ import (
 
 // single change in a single wire
 type Change struct {
-	Time   int
+	Time int
+
+	// TODO - having both Wire and Signal could be inconsistent; Change.Wire.Signal will be out-of-date, won't reflect new value in Change.Signal
 	Wire   *wire.Wire
 	Signal bool // TODO - change to proper Signal type?
 }
@@ -68,12 +70,13 @@ func MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) Component {
 	gate.inputWires[in2] = struct{}{}
 
 	gate.processChangeLogic = func(ch Change) []Change {
+		fmt.Printf("AND gate processing change at t=%v\n", ch.Time)
+		fmt.Printf("Change on wire %v, new signal is %v\n", ch.Wire, ch.Signal)
+
 		return []Change{
 			{
-				Time: ch.Time + gateDelay,
-				Wire: out,
-
-				// TODO - incorrect - this looks up old signals instead of taking into account new values from the change
+				Time:   ch.Time + gateDelay,
+				Wire:   out,
 				Signal: bool(in1.Signal()) && bool(in2.Signal()),
 			},
 		}
@@ -123,7 +126,26 @@ func (cir *Circuit) AddInternalWire() {
 	cir.internalWireCount++
 }
 
-// execute a single change and its immediate effects, possibly producing further changes
+/*****
+Overall flow of changes:
+1. a Change to an input wire is created and passed to Propagate()
+2. Propagate() adds this as the initial change to agenda
+3. Propagate() pops the next Change(s) to be made from the agenda, passes it/them to executeChange()
+4. executeChange() updates the change's wire with the new signal from the change
+5. executeChange() calls .HandleChange() on all components to see if any new changes are created
+6. Any component with an input wire whose signal was changed creates a new Change with the updated value for output wires, returns it from HandleChange()
+7. All Changes created this way are collected by executeChange() and passed back to Propagate(), which adds them to the agenda
+8. Propagate() returns to step 3; this loops until there are no more downstream changes to execute
+
+In the simple case of a single gate:
+1. Change is created affecting an input wire
+2. First iteration of executeChange() updates that wire's value
+3. First iteration of executeChange() calls .HandleChange(); gate calculates the new value for its output wire and returns a Change specifying that
+4. Second iteration of executeChange() receives the Change for the output wire and updates its value
+*/
+
+// execute a single change, possibly producing further changes
+// the only wire whose signal is actually changed is ch.Wire
 func (cir *Circuit) executeChange(ch Change) []Change {
 	fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 
@@ -131,13 +153,15 @@ func (cir *Circuit) executeChange(ch Change) []Change {
 		panic(fmt.Sprintf("Circuit doesn't contain wire %v", ch.Wire)) // TODO - should we have this check?
 	}
 
+	// update wire from change
+	fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
+	ch.Wire.SetSignal(wire.Signal(ch.Signal))
+
+	// now check for downstream changes
 	downstreamChanges := []Change{}
 	for _, com := range cir.components {
 		changeResults := com.HandleChange(ch)
 		for _, chResult := range changeResults {
-			fmt.Printf("Calling SetSignal on wire %v with value %v\n", chResult.Wire, chResult.Signal)
-			chResult.Wire.SetSignal(wire.Signal(chResult.Signal))
-
 			downstreamChanges = append(downstreamChanges, chResult)
 		}
 	}
@@ -161,7 +185,6 @@ func (cir *Circuit) Propagate(initialChange Change) {
 		// TODO - check for possibility of overlap and resolve/combine somehow?
 		for _, nextChange := range nextChanges {
 			// TODO - having this check messes with circuit initialization
-
 			// if prevSignal == wire.Signal(newSignal) {
 			// 	continue // no actual change in signal => no-op
 			// }
