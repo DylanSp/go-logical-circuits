@@ -12,8 +12,8 @@ type Wire struct {
 	signal Signal
 }
 
-func New(name string) Wire {
-	return Wire{
+func New(name string) *Wire {
+	return &Wire{
 		name:   name,
 		signal: Low,
 	}

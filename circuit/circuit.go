@@ -75,7 +75,7 @@ func (cir *Circuit) AddWire(wireName string) {
 	}
 
 	newWire := wire.New(wireName)
-	cir.wireState[wireName] = &newWire
+	cir.wireState[wireName] = newWire
 }
 
 // used for adding internal wires inside components
