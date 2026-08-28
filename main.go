@@ -8,16 +8,19 @@ import (
 
 func main() {
 	cir := circuit.NewCircuit()
+
 	in1 := cir.AddWire("input1")
 	out1 := cir.AddWire("output1")
-	notGate1 := circuit.MkNotGate(in1, out1)
-	cir.AddComponents(notGate1)
+	cir.MkNotGate(in1, out1)
 
 	in2 := cir.AddWire("input2")
 	in3 := cir.AddWire("input3")
 	out2 := cir.AddWire("output2")
-	andGate1 := circuit.MkAndGate(in2, in3, out2)
-	cir.AddComponents(andGate1)
+	cir.MkAndGate(in2, in3, out2)
+
+	in4 := cir.AddWire("input4")
+	out3 := cir.AddWire("output3")
+	cir.Mk3AndGate(in2, in3, in4, out3)
 
 	// TODO - need a way to initialize circuit with initial values of input wires
 	// TODO - have Circuit track its input wires, add an Initialize method that sets all input wires to low, then calls Propagate()?
@@ -40,6 +43,11 @@ func main() {
 		{
 			Time:   0,
 			Wire:   in3,
+			Signal: false,
+		},
+		{
+			Time:   0,
+			Wire:   in4,
 			Signal: false,
 		},
 	}
@@ -91,4 +99,26 @@ func main() {
 	cir.Propagate(change4)
 
 	fmt.Printf("Final state of out2 wire: %v\n\n", out2.Signal())
+
+	// 3-way (compound) AND gate testing
+
+	fmt.Printf("Initial state of out3 wire: %v\n\n", out3.Signal())
+
+	change5 := circuit.Change{
+		Time:   50,
+		Wire:   in4,
+		Signal: true,
+	}
+	cir.Propagate(change5)
+
+	fmt.Printf("Intermediate state of out3 wire: %v\n\n", out3.Signal())
+
+	change6 := circuit.Change{
+		Time:   60,
+		Wire:   in2,
+		Signal: false,
+	}
+	cir.Propagate(change6)
+	fmt.Printf("Final state of out3 wire: %v\n\n", out3.Signal())
+	fmt.Printf("Additionally, state of out2 wire: %v\n\n", out2.Signal())
 }

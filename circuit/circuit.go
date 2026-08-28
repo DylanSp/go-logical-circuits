@@ -41,9 +41,9 @@ func (com Component) HandleChange(ch Change) []Change {
 	return com.processChangeLogic(ch)
 }
 
-// TODO - put functions for making gates in another file?
+// TODO - put methods for making gates/components in another file?
 
-func MkNotGate(inWire *wire.Wire, outWire *wire.Wire) Component {
+func (cir *Circuit) MkNotGate(inWire *wire.Wire, outWire *wire.Wire) {
 	gate := Component{
 		inputWires: map[*wire.Wire]struct{}{},
 	}
@@ -59,10 +59,10 @@ func MkNotGate(inWire *wire.Wire, outWire *wire.Wire) Component {
 		}
 	}
 
-	return gate
+	cir.AddComponents(gate)
 }
 
-func MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) Component {
+func (cir *Circuit) MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
 	gate := Component{
 		inputWires: map[*wire.Wire]struct{}{},
 	}
@@ -82,7 +82,13 @@ func MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) Component {
 		}
 	}
 
-	return gate
+	cir.AddComponents(gate)
+}
+
+func (cir *Circuit) Mk3AndGate(in1 *wire.Wire, in2 *wire.Wire, in3 *wire.Wire, out *wire.Wire) {
+	tmp1 := cir.addInternalWire()
+	cir.MkAndGate(in1, in2, tmp1)
+	cir.MkAndGate(tmp1, in3, out)
 }
 
 type Circuit struct {
@@ -118,12 +124,12 @@ func (cir *Circuit) AddWire(wireName string) *wire.Wire {
 	return newWire
 }
 
-// used for adding internal wires inside components
-// TODO - does this need to be exported?
-func (cir *Circuit) AddInternalWire() {
+// used for adding internal wires inside compound components
+func (cir *Circuit) addInternalWire() *wire.Wire {
 	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
-	cir.AddWire(wireName)
+	wire := cir.AddWire(wireName)
 	cir.internalWireCount++
+	return wire
 }
 
 /*****
@@ -154,7 +160,7 @@ func (cir *Circuit) executeChange(ch Change) []Change {
 	}
 
 	// update wire from change
-	fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
+	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
 	ch.Wire.SetSignal(wire.Signal(ch.Signal))
 
 	// now check for downstream changes
