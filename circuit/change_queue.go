@@ -40,12 +40,10 @@ func (cq *ChangeQueue) GetNextChanges() ([]Change, bool) {
 	nextChanges := []Change{cq.agenda[0]}
 	cq.agenda = cq.agenda[1:]
 
-	// pop any other changes with the same tim
-	if len(cq.agenda) > 0 {
-		for cq.agenda[0].Time == nextChanges[0].Time {
-			nextChanges = append(nextChanges, cq.agenda[0])
-			cq.agenda = cq.agenda[1:]
-		}
+	// pop any other changes with the same time
+	for len(cq.agenda) > 0 && cq.agenda[0].Time == nextChanges[0].Time {
+		nextChanges = append(nextChanges, cq.agenda[0])
+		cq.agenda = cq.agenda[1:]
 	}
 
 	return nextChanges, true
