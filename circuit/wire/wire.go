@@ -19,23 +19,19 @@ func New(name string) *Wire {
 	}
 }
 
-func (w Wire) Name() string {
+func (w *Wire) Name() string {
 	return w.name
 }
 
 // implement stringer interface
-func (w Wire) String() string {
+func (w *Wire) String() string {
 	return w.Name()
 }
 
-func (w Wire) Signal() Signal {
+func (w *Wire) Signal() Signal {
 	return w.signal
 }
 
-func (w *Wire) SetLow() {
-	w.signal = Low
-}
-
-func (w *Wire) SetHigh() {
-	w.signal = High
+func (w *Wire) SetSignal(newSignal Signal) {
+	w.signal = newSignal
 }

@@ -14,6 +14,10 @@ func NewChangeQueue() *ChangeQueue {
 	}
 }
 
+func (cq *ChangeQueue) Length() int {
+	return len(cq.agenda)
+}
+
 func (cq *ChangeQueue) sortAgenda() {
 	slices.SortFunc(cq.agenda, func(ch1 Change, ch2 Change) int {
 		return ch1.Time - ch2.Time
