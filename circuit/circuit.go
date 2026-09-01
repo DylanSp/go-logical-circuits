@@ -10,9 +10,8 @@ import (
 type Change struct {
 	Time int
 
-	// TODO - having both Wire and Signal could be inconsistent; Change.Wire.Signal will be out-of-date, won't reflect new value in Change.Signal
 	Wire   *wire.Wire
-	Signal bool // TODO - change to proper Signal type?
+	Signal wire.Signal
 }
 
 func (ch Change) String() string {
@@ -59,7 +58,7 @@ func (cir *Circuit) MkNotGate(inWire *wire.Wire, outWire *wire.Wire) {
 		}
 	}
 
-	cir.AddComponents(gate)
+	cir.addComponents(gate)
 }
 
 func (cir *Circuit) MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
@@ -77,12 +76,12 @@ func (cir *Circuit) MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
 			{
 				Time:   ch.Time + gateDelay,
 				Wire:   out,
-				Signal: bool(in1.Signal()) && bool(in2.Signal()),
+				Signal: in1.Signal() && in2.Signal(),
 			},
 		}
 	}
 
-	cir.AddComponents(gate)
+	cir.addComponents(gate)
 }
 
 func (cir *Circuit) Mk3AndGate(in1 *wire.Wire, in2 *wire.Wire, in3 *wire.Wire, out *wire.Wire) {
@@ -106,8 +105,7 @@ func NewCircuit() Circuit {
 	}
 }
 
-func (cir *Circuit) AddComponents(components ...Component) {
-	// TODO - do we need to do anything else?
+func (cir *Circuit) addComponents(components ...Component) {
 	cir.components = append(cir.components, components...)
 }
 
@@ -156,7 +154,7 @@ func (cir *Circuit) executeChange(ch Change) []Change {
 	fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 
 	if _, ok := cir.wires[ch.Wire.Name()]; !ok {
-		panic(fmt.Sprintf("Circuit doesn't contain wire %v", ch.Wire)) // TODO - should we have this check?
+		panic(fmt.Sprintf("Circuit doesn't contain wire %v", ch.Wire)) // TODO - should we have/do we need this check?
 	}
 
 	// update wire from change
