@@ -57,6 +57,30 @@ func (cir *Circuit) MkOrGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
 	})(cir, in1, in2, out)
 }
 
+func (cir *Circuit) MkXorGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
+	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+		return s1 != s2
+	})(cir, in1, in2, out)
+}
+
+func (cir *Circuit) MkNandGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
+	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+		return !(s1 && s2)
+	})(cir, in1, in2, out)
+}
+
+func (cir *Circuit) MkNorGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
+	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+		return !(s1 || s2)
+	})(cir, in1, in2, out)
+}
+
+func (cir *Circuit) MkXnorGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
+	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+		return s1 == s2
+	})(cir, in1, in2, out)
+}
+
 func (cir *Circuit) Mk3AndGate(in1 *wire.Wire, in2 *wire.Wire, in3 *wire.Wire, out *wire.Wire) {
 	tmp1 := cir.addInternalWire()
 	cir.MkAndGate(in1, in2, tmp1)
