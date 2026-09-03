@@ -41,7 +41,16 @@ func (com Component) HandleChange(ch Change) []Change {
 }
 
 type Circuit struct {
-	wires      map[string]*wire.Wire // wires by name
+	wires map[string]*wire.Wire // all wires by name
+
+	// TODO - rework how wires are saved?
+	// maybe have 3 fields, sets of wires, for input, internal, and output?
+	// or maybe 4?
+	// - one for wires internal to components (from addInternalWire())
+	// - one for wires between components that aren't input or output (call these "auxiliary" wires?)
+	// and if necessary, a method that unions all these sets to get all wires?
+	inputWires map[*wire.Wire]struct{} // tracked for initialization
+
 	components []Component
 
 	internalWireCount int // used for giving internal wires unique names
