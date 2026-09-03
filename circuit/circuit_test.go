@@ -12,8 +12,8 @@ func TestBasicGates(t *testing.T) {
 	t.Run("NOT gate", func(t *testing.T) {
 		// set up gate
 		cir := circuit.NewCircuit()
-		inWire := cir.AddWire("input")
-		outWire := cir.AddWire("output")
+		inWire := cir.AddInputWire("input")
+		outWire := cir.AddOutputWire("output")
 		cir.MkNotGate(inWire, outWire)
 
 		// initialize input wire
@@ -43,9 +43,9 @@ func TestBasicGates(t *testing.T) {
 	t.Run("AND gate", func(t *testing.T) {
 		// set up gate
 		cir := circuit.NewCircuit()
-		in1 := cir.AddWire("input1")
-		in2 := cir.AddWire("input2")
-		outWire := cir.AddWire("output")
+		in1 := cir.AddInputWire("input1")
+		in2 := cir.AddInputWire("input2")
+		outWire := cir.AddOutputWire("output")
 		cir.MkAndGate(in1, in2, outWire)
 
 		// initialize input wires

@@ -41,6 +41,11 @@ func (com Component) HandleChange(ch Change) []Change {
 }
 
 type Circuit struct {
+	inputWires     map[*wire.Wire]struct{}
+	outputWires    map[*wire.Wire]struct{}
+	auxiliaryWires map[*wire.Wire]struct{} // TODO - needed?
+	internalWires  map[*wire.Wire]struct{} // TODO - needed?
+
 	wires map[string]*wire.Wire // all wires by name
 
 	// TODO - rework how wires are saved?
@@ -49,7 +54,7 @@ type Circuit struct {
 	// - one for wires internal to components (from addInternalWire())
 	// - one for wires between components that aren't input or output (call these "auxiliary" wires?)
 	// and if necessary, a method that unions all these sets to get all wires?
-	inputWires map[*wire.Wire]struct{} // tracked for initialization
+	// tracked for initialization
 
 	components []Component
 
@@ -64,12 +69,8 @@ func NewCircuit() Circuit {
 	}
 }
 
-func (cir *Circuit) addComponents(components ...Component) {
-	cir.components = append(cir.components, components...)
-}
-
 // return the added wire so callers can refer to it for setting up components
-func (cir *Circuit) AddWire(wireName string) *wire.Wire {
+func (cir *Circuit) addWire(wireName string) *wire.Wire {
 	_, hasWire := cir.wires[wireName]
 	if hasWire {
 		panic(fmt.Sprintf("Wire %v already present", wireName))
@@ -81,12 +82,35 @@ func (cir *Circuit) AddWire(wireName string) *wire.Wire {
 	return newWire
 }
 
+func (cir *Circuit) AddInputWire(wireName string) *wire.Wire {
+	wire := cir.addWire(wireName)
+	cir.inputWires[wire] = struct{}{}
+	return wire
+}
+
+func (cir *Circuit) AddOutputWire(wireName string) *wire.Wire {
+	wire := cir.addWire(wireName)
+	cir.outputWires[wire] = struct{}{}
+	return wire
+}
+
+// auxiliary wires - neither inputs nor outputs
+func (cir *Circuit) AddAuxiliaryWire(wireName string) *wire.Wire {
+	wire := cir.addWire(wireName)
+	cir.auxiliaryWires[wire] = struct{}{}
+	return wire
+}
+
 // used for adding internal wires inside compound components
 func (cir *Circuit) addInternalWire() *wire.Wire {
 	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
-	wire := cir.AddWire(wireName)
+	wire := cir.addWire(wireName)
 	cir.internalWireCount++
 	return wire
+}
+
+func (cir *Circuit) addComponents(components ...Component) {
+	cir.components = append(cir.components, components...)
 }
 
 /*****

@@ -9,17 +9,17 @@ import (
 func main() {
 	cir := circuit.NewCircuit()
 
-	in1 := cir.AddWire("input1")
-	out1 := cir.AddWire("output1")
+	in1 := cir.AddInputWire("input1")
+	out1 := cir.AddOutputWire("output1")
 	cir.MkNotGate(in1, out1)
 
-	in2 := cir.AddWire("input2")
-	in3 := cir.AddWire("input3")
-	out2 := cir.AddWire("output2")
+	in2 := cir.AddInputWire("input2")
+	in3 := cir.AddInputWire("input3")
+	out2 := cir.AddOutputWire("output2")
 	cir.MkAndGate(in2, in3, out2)
 
-	in4 := cir.AddWire("input4")
-	out3 := cir.AddWire("output3")
+	in4 := cir.AddInputWire("input4")
+	out3 := cir.AddOutputWire("output3")
 	cir.Mk3AndGate(in2, in3, in4, out3)
 
 	// TODO - need a way to initialize circuit with initial values of input wires
