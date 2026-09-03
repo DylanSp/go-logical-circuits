@@ -44,7 +44,7 @@ type Circuit struct {
 	wires      map[string]*wire.Wire // wires by name
 	components []Component
 
-	internalWireCount int
+	internalWireCount int // used for giving internal wires unique names
 }
 
 func NewCircuit() Circuit {
