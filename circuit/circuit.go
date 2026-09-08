@@ -41,8 +41,9 @@ func (com Component) HandleChange(ch Change) []Change {
 }
 
 type Circuit struct {
-	inputWires     map[*wire.Wire]struct{}
-	outputWires    map[*wire.Wire]struct{}
+	inputWires map[*wire.Wire]struct{} // tracked for initialization
+
+	outputWires    map[*wire.Wire]struct{} // TODO - needed?
 	auxiliaryWires map[*wire.Wire]struct{} // TODO - needed?
 	internalWires  map[*wire.Wire]struct{} // TODO - needed?
 
@@ -54,7 +55,6 @@ type Circuit struct {
 	// - one for wires internal to components (from addInternalWire())
 	// - one for wires between components that aren't input or output (call these "auxiliary" wires?)
 	// and if necessary, a method that unions all these sets to get all wires?
-	// tracked for initialization
 
 	components []Component
 
@@ -63,7 +63,13 @@ type Circuit struct {
 
 func NewCircuit() Circuit {
 	return Circuit{
-		wires:             map[string]*wire.Wire{},
+		wires: map[string]*wire.Wire{},
+
+		inputWires:     map[*wire.Wire]struct{}{},
+		outputWires:    map[*wire.Wire]struct{}{},
+		auxiliaryWires: map[*wire.Wire]struct{}{},
+		internalWires:  map[*wire.Wire]struct{}{},
+
 		components:        []Component{},
 		internalWireCount: 0,
 	}
@@ -184,4 +190,20 @@ func (cir *Circuit) Propagate(initialChange Change) {
 	}
 
 	fmt.Printf("Done propagating\n\n")
+}
+
+func (cir *Circuit) Initialize() {
+	inputInitializations := []Change{}
+
+	for inWire := range cir.inputWires {
+		inputInitializations = append(inputInitializations, Change{
+			Time:   0,
+			Wire:   inWire,
+			Signal: wire.Low,
+		})
+	}
+
+	for _, ch := range inputInitializations {
+		cir.Propagate(ch)
+	}
 }

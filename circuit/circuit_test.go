@@ -16,13 +16,7 @@ func TestBasicGates(t *testing.T) {
 		outWire := cir.AddOutputWire("output")
 		cir.MkNotGate(inWire, outWire)
 
-		// initialize input wire
-		initialization := circuit.Change{
-			Time:   0,
-			Wire:   inWire,
-			Signal: wire.Low,
-		}
-		cir.Propagate(initialization)
+		cir.Initialize()
 
 		// validate initial output
 		initializedOutput := outWire.Signal()
@@ -48,22 +42,7 @@ func TestBasicGates(t *testing.T) {
 		outWire := cir.AddOutputWire("output")
 		cir.MkAndGate(in1, in2, outWire)
 
-		// initialize input wires
-		initializations := []circuit.Change{
-			{
-				Time:   0,
-				Wire:   in1,
-				Signal: wire.Low,
-			},
-			{
-				Time:   1,
-				Wire:   in2,
-				Signal: wire.Low,
-			},
-		}
-		for _, init := range initializations {
-			cir.Propagate(init)
-		}
+		cir.Initialize()
 
 		// test that High && Low == Low
 		high1Input := circuit.Change{
