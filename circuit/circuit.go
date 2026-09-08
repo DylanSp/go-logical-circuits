@@ -42,19 +42,7 @@ func (com Component) HandleChange(ch Change) []Change {
 
 type Circuit struct {
 	inputWires map[*wire.Wire]struct{} // tracked for initialization
-
-	outputWires    map[*wire.Wire]struct{} // TODO - needed?
-	auxiliaryWires map[*wire.Wire]struct{} // TODO - needed?
-	internalWires  map[*wire.Wire]struct{} // TODO - needed?
-
-	wires map[string]*wire.Wire // all wires by name
-
-	// TODO - rework how wires are saved?
-	// maybe have 3 fields, sets of wires, for input, internal, and output?
-	// or maybe 4?
-	// - one for wires internal to components (from addInternalWire())
-	// - one for wires between components that aren't input or output (call these "auxiliary" wires?)
-	// and if necessary, a method that unions all these sets to get all wires?
+	wires      map[string]*wire.Wire   // all wires by name; tracked to avoid duplicate wires
 
 	components []Component
 
@@ -63,13 +51,8 @@ type Circuit struct {
 
 func NewCircuit() Circuit {
 	return Circuit{
-		wires: map[string]*wire.Wire{},
-
-		inputWires:     map[*wire.Wire]struct{}{},
-		outputWires:    map[*wire.Wire]struct{}{},
-		auxiliaryWires: map[*wire.Wire]struct{}{},
-		internalWires:  map[*wire.Wire]struct{}{},
-
+		wires:             map[string]*wire.Wire{},
+		inputWires:        map[*wire.Wire]struct{}{},
 		components:        []Component{},
 		internalWireCount: 0,
 	}
@@ -96,14 +79,12 @@ func (cir *Circuit) AddInputWire(wireName string) *wire.Wire {
 
 func (cir *Circuit) AddOutputWire(wireName string) *wire.Wire {
 	wire := cir.addWire(wireName)
-	cir.outputWires[wire] = struct{}{}
 	return wire
 }
 
 // auxiliary wires - neither inputs nor outputs
 func (cir *Circuit) AddAuxiliaryWire(wireName string) *wire.Wire {
 	wire := cir.addWire(wireName)
-	cir.auxiliaryWires[wire] = struct{}{}
 	return wire
 }
 
@@ -142,9 +123,8 @@ In the simple case of a single gate:
 func (cir *Circuit) executeChange(ch Change) []Change {
 	fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 
-	if _, ok := cir.wires[ch.Wire.Name()]; !ok {
-		panic(fmt.Sprintf("Circuit doesn't contain wire %v", ch.Wire)) // TODO - should we have/do we need this check?
-	}
+	// don't need to check if wire is in circuit;
+	// if it isn't, the change won't propagate to anything in the circuit
 
 	// update wire from change
 	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
