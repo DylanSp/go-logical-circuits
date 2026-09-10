@@ -157,11 +157,9 @@ func (cir *Circuit) Propagate(initialChange Change) {
 		// TODO - how to handle the case where there is >1 nextChange at the same time?
 		// TODO - check for possibility of overlap and resolve/combine somehow?
 		for _, nextChange := range nextChanges {
-			// TODO - having this check messes with circuit initialization
-			// if prevSignal == wire.Signal(newSignal) {
-			// 	continue // no actual change in signal => no-op
-			// }
-
+			// don't check if prevSignal == newSignal;
+			// that's only an early-out optimization,
+			// and not having it messes with circuit initialization
 			downstreamChanges := cir.executeChange(nextChange)
 			for _, downstream := range downstreamChanges {
 				agenda.AddChange(downstream)
