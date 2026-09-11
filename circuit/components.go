@@ -86,3 +86,8 @@ func (cir *Circuit) Mk3AndGate(in1 *wire.Wire, in2 *wire.Wire, in3 *wire.Wire, o
 	cir.MkAndGate(in1, in2, tmp1)
 	cir.MkAndGate(tmp1, in3, out)
 }
+
+func (cir *Circuit) MkHalfAdder(in1 *wire.Wire, in2 *wire.Wire, outSum *wire.Wire, outCarry *wire.Wire) {
+	cir.MkXorGate(in1, in2, outSum)
+	cir.MkAndGate(in1, in2, outCarry)
+}

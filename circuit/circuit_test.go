@@ -66,4 +66,73 @@ func TestBasicGates(t *testing.T) {
 		newOutput = outWire.Signal()
 		assert.Equal(t, wire.High, newOutput)
 	})
+
+	t.Run("Half adder", func(t *testing.T) {
+		// set up circuit
+		cir := circuit.NewCircuit()
+		in1 := cir.AddInputWire("input1")
+		in2 := cir.AddInputWire("input2")
+		sum := cir.AddOutputWire("sum")
+		carry := cir.AddOutputWire("carry")
+		cir.MkHalfAdder(in1, in2, sum, carry)
+
+		testCases := []struct {
+			in1Value      wire.Signal
+			in2Value      wire.Signal
+			expectedSum   wire.Signal
+			expectedCarry wire.Signal
+		}{
+			{
+				in1Value: wire.Low,
+				in2Value: wire.Low,
+
+				expectedSum:   wire.Low,
+				expectedCarry: wire.Low,
+			},
+			{
+				in1Value: wire.Low,
+				in2Value: wire.High,
+
+				expectedSum:   wire.High,
+				expectedCarry: wire.Low,
+			},
+			{
+				in1Value: wire.High,
+				in2Value: wire.Low,
+
+				expectedSum:   wire.High,
+				expectedCarry: wire.Low,
+			},
+			{
+				in1Value: wire.High,
+				in2Value: wire.High,
+
+				expectedSum:   wire.Low,
+				expectedCarry: wire.High,
+			},
+		}
+
+		for i, tc := range testCases {
+			changes := []circuit.Change{
+				{
+					Time:   i + 1,
+					Wire:   in1,
+					Signal: tc.in1Value,
+				},
+				{
+					Time:   i + 1,
+					Wire:   in2,
+					Signal: tc.in2Value,
+				},
+			}
+			for _, ch := range changes {
+				cir.Propagate(ch)
+			}
+
+			actualSum := sum.Signal()
+			actualCarry := carry.Signal()
+			assert.EqualValues(t, tc.expectedSum, actualSum)
+			assert.EqualValues(t, tc.expectedCarry, actualCarry)
+		}
+	})
 }
