@@ -145,11 +145,14 @@ func (cir *Circuit) executeChange(ch Change) []Change {
 // propagate a single change through the circuit until it stabilizes
 // TODO - how to handle cases where circuit never stabilizes?
 // TODO - return an iterator of some sort?
-func (cir *Circuit) Propagate(initialChange Change) {
+func (cir *Circuit) Propagate(initialChanges ...Change) {
 	agenda := NewChangeQueue()
-	agenda.AddChange(initialChange)
 
-	fmt.Printf("Propagating from change at t=%v\n", initialChange.Time)
+	for _, ch := range initialChanges {
+		agenda.AddChange(ch)
+	}
+
+	// fmt.Printf("Propagating from change at t=%v\n", initialChange.Time)
 
 	for agenda.Length() > 0 {
 		nextChanges, _ := agenda.GetNextChanges()
