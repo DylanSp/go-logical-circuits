@@ -91,3 +91,15 @@ func (cir *Circuit) MkHalfAdder(in1 *wire.Wire, in2 *wire.Wire, outSum *wire.Wir
 	cir.MkXorGate(in1, in2, outSum)
 	cir.MkAndGate(in1, in2, outCarry)
 }
+
+func (cir *Circuit) MkFullAdder(in1 *wire.Wire, in2 *wire.Wire, inCarry *wire.Wire, outSum *wire.Wire, outCarry *wire.Wire) {
+	xorIntermediate := cir.addInternalWire()
+	cir.MkXorGate(in1, in2, xorIntermediate)
+	cir.MkXorGate(inCarry, xorIntermediate, outSum)
+
+	carryIntermediate1 := cir.addInternalWire()
+	cir.MkAndGate(inCarry, xorIntermediate, carryIntermediate1)
+	carryIntermediate2 := cir.addInternalWire()
+	cir.MkAndGate(in1, in2, carryIntermediate2)
+	cir.MkOrGate(carryIntermediate1, carryIntermediate2, outCarry)
+}
