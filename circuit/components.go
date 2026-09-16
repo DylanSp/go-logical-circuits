@@ -4,32 +4,38 @@ import (
 	"github.com/DylanSp/go-logical-circuits/circuit/wire"
 )
 
-func (cir *Circuit) MkNotGate(inWire *wire.Wire, outWire *wire.Wire) {
+func (cir *Circuit) Not(in *wire.Wire) *wire.Wire {
 	gate := Component{
 		inputWires: map[*wire.Wire]struct{}{},
 	}
-	gate.inputWires[inWire] = struct{}{}
+	gate.inputWires[in] = struct{}{}
+
+	out := cir.addInternalWire()
 
 	gate.processChangeLogic = func(ch Change) []Change {
 		return []Change{
 			{
 				Time:   ch.Time + gateDelay,
-				Wire:   outWire,
+				Wire:   out,
 				Signal: !ch.Signal,
 			},
 		}
 	}
 
 	cir.addComponents(gate)
+
+	return out
 }
 
-func binaryGateFactory(truthTable func(wire.Signal, wire.Signal) wire.Signal) func(*Circuit, *wire.Wire, *wire.Wire, *wire.Wire) {
-	return func(cir *Circuit, in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
+func binaryGateFactory(truthTable func(wire.Signal, wire.Signal) wire.Signal) func(*Circuit, *wire.Wire, *wire.Wire) *wire.Wire {
+	return func(cir *Circuit, in1, in2 *wire.Wire) *wire.Wire {
 		gate := Component{
 			inputWires: map[*wire.Wire]struct{}{},
 		}
 		gate.inputWires[in1] = struct{}{}
 		gate.inputWires[in2] = struct{}{}
+
+		out := cir.addInternalWire()
 
 		gate.processChangeLogic = func(ch Change) []Change {
 			return []Change{
@@ -40,66 +46,57 @@ func binaryGateFactory(truthTable func(wire.Signal, wire.Signal) wire.Signal) fu
 				},
 			}
 		}
-
 		cir.addComponents(gate)
+
+		return out
 	}
 }
 
-func (cir *Circuit) MkAndGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
-	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+func (cir *Circuit) And(in1, in2 *wire.Wire) *wire.Wire {
+	return binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
 		return s1 && s2
-	})(cir, in1, in2, out)
+	})(cir, in1, in2)
 }
 
-func (cir *Circuit) MkOrGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
-	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+func (cir *Circuit) Or(in1, in2 *wire.Wire) *wire.Wire {
+	return binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
 		return s1 || s2
-	})(cir, in1, in2, out)
+	})(cir, in1, in2)
 }
 
-func (cir *Circuit) MkXorGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
-	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+func (cir *Circuit) Xor(in1, in2 *wire.Wire) *wire.Wire {
+	return binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
 		return s1 != s2
-	})(cir, in1, in2, out)
+	})(cir, in1, in2)
 }
 
-func (cir *Circuit) MkNandGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
-	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+func (cir *Circuit) Nand(in1, in2 *wire.Wire) *wire.Wire {
+	return binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
 		return !(s1 && s2)
-	})(cir, in1, in2, out)
+	})(cir, in1, in2)
 }
 
-func (cir *Circuit) MkNorGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
-	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+func (cir *Circuit) Nor(in1, in2 *wire.Wire) *wire.Wire {
+	return binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
 		return !(s1 || s2)
-	})(cir, in1, in2, out)
+	})(cir, in1, in2)
 }
 
-func (cir *Circuit) MkXnorGate(in1 *wire.Wire, in2 *wire.Wire, out *wire.Wire) {
-	binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
+func (cir *Circuit) Xnor(in1, in2 *wire.Wire) *wire.Wire {
+	return binaryGateFactory(func(s1, s2 wire.Signal) wire.Signal {
 		return s1 == s2
-	})(cir, in1, in2, out)
+	})(cir, in1, in2)
 }
 
-func (cir *Circuit) Mk3AndGate(in1 *wire.Wire, in2 *wire.Wire, in3 *wire.Wire, out *wire.Wire) {
-	tmp1 := cir.addInternalWire()
-	cir.MkAndGate(in1, in2, tmp1)
-	cir.MkAndGate(tmp1, in3, out)
+func (cir *Circuit) HalfAdder(in1, in2 *wire.Wire) (*wire.Wire, *wire.Wire) {
+	sum := cir.Xor(in1, in2)
+	carry := cir.And(in1, in2)
+
+	return sum, carry
 }
 
-func (cir *Circuit) MkHalfAdder(in1 *wire.Wire, in2 *wire.Wire, outSum *wire.Wire, outCarry *wire.Wire) {
-	cir.MkXorGate(in1, in2, outSum)
-	cir.MkAndGate(in1, in2, outCarry)
-}
-
-func (cir *Circuit) MkFullAdder(in1 *wire.Wire, in2 *wire.Wire, inCarry *wire.Wire, outSum *wire.Wire, outCarry *wire.Wire) {
-	xorIntermediate := cir.addInternalWire()
-	cir.MkXorGate(in1, in2, xorIntermediate)
-	cir.MkXorGate(inCarry, xorIntermediate, outSum)
-
-	carryIntermediate1 := cir.addInternalWire()
-	cir.MkAndGate(inCarry, xorIntermediate, carryIntermediate1)
-	carryIntermediate2 := cir.addInternalWire()
-	cir.MkAndGate(in1, in2, carryIntermediate2)
-	cir.MkOrGate(carryIntermediate1, carryIntermediate2, outCarry)
+func (cir *Circuit) FullAdder(in1, in2, inCarry *wire.Wire) (*wire.Wire, *wire.Wire) {
+	sum := cir.Xor(cir.Xor(in1, in2), inCarry)
+	carry := cir.Or(cir.And(in1, in2), cir.And(inCarry, cir.Xor(in1, in2)))
+	return sum, carry
 }

@@ -13,8 +13,7 @@ func TestBasicGates(t *testing.T) {
 		// set up gate
 		cir := circuit.NewCircuit()
 		inWire := cir.AddInputWire("input")
-		outWire := cir.AddOutputWire("output")
-		cir.MkNotGate(inWire, outWire)
+		outWire := cir.Not(inWire)
 
 		cir.Initialize()
 
@@ -39,8 +38,7 @@ func TestBasicGates(t *testing.T) {
 		cir := circuit.NewCircuit()
 		in1 := cir.AddInputWire("input1")
 		in2 := cir.AddInputWire("input2")
-		outWire := cir.AddOutputWire("output")
-		cir.MkAndGate(in1, in2, outWire)
+		outWire := cir.And(in1, in2)
 
 		cir.Initialize()
 
@@ -72,9 +70,7 @@ func TestBasicGates(t *testing.T) {
 		cir := circuit.NewCircuit()
 		in1 := cir.AddInputWire("input1")
 		in2 := cir.AddInputWire("input2")
-		sum := cir.AddOutputWire("sum")
-		carry := cir.AddOutputWire("carry")
-		cir.MkHalfAdder(in1, in2, sum, carry)
+		sum, carry := cir.HalfAdder(in1, in2)
 
 		testCases := []struct {
 			in1Value      wire.Signal
