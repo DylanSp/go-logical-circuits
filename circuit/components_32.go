@@ -39,3 +39,23 @@ func binaryGateFactory32(
 func (cir *Circuit) And32(in1, in2 *wire.Wire32) *wire.Wire32 {
 	return binaryGateFactory32(cir.And)(cir, in1, in2)
 }
+
+func (cir *Circuit) Or32(in1, in2 *wire.Wire32) *wire.Wire32 {
+	return binaryGateFactory32(cir.Or)(cir, in1, in2)
+}
+
+func (cir *Circuit) Xor32(in1, in2 *wire.Wire32) *wire.Wire32 {
+	return binaryGateFactory32(cir.Xor)(cir, in1, in2)
+}
+
+func (cir *Circuit) Nand32(in1, in2 *wire.Wire32) *wire.Wire32 {
+	return binaryGateFactory32(cir.Nand)(cir, in1, in2)
+}
+
+func (cir *Circuit) Nor32(in1, in2 *wire.Wire32) *wire.Wire32 {
+	return binaryGateFactory32(cir.Nor)(cir, in1, in2)
+}
+
+func (cir *Circuit) Xnor32(in1, in2 *wire.Wire32) *wire.Wire32 {
+	return binaryGateFactory32(cir.Xnor)(cir, in1, in2)
+}
