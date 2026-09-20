@@ -9,6 +9,14 @@ const (
 	High Signal = true
 )
 
+func (sig Signal) String() string {
+	if sig == Low {
+		return "Low"
+	} else {
+		return "High"
+	}
+}
+
 type Wire struct {
 	name   string
 	signal Signal
