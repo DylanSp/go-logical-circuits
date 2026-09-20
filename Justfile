@@ -10,3 +10,6 @@ run:
 
 test:
     go test ./...
+
+fuzz-circuit:
+    go test -fuzz=Fuzz "github.com/DylanSp/go-logical-circuits/circuit"

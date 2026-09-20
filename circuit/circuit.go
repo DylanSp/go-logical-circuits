@@ -41,6 +41,8 @@ func (com Component) HandleChange(ch Change) []Change {
 }
 
 type Circuit struct {
+	// TODO - instead of tracking inputWires separately, initialize by setting a single wire to Low, then propagating?
+	// TODO - would allow just having a single AddWire() method instead of Add{Input,Output,Auxiliary}Wire/
 	inputWires map[*wire.Wire]struct{} // tracked for initialization
 	wires      map[string]*wire.Wire   // all wires by name; tracked to avoid duplicate wires
 
@@ -71,9 +73,30 @@ func (cir *Circuit) addWire(wireName string) *wire.Wire {
 	return newWire
 }
 
+func (cir *Circuit) addWire32(wireName string) *wire.Wire32 {
+	// TODO - check if wire is already present? (circuit would need another field to track Wire32's)
+
+	newWires := [32]*wire.Wire{}
+	for i := range 32 {
+		newWires[i] = cir.addWire(fmt.Sprintf("%v-%v", wireName, i))
+	}
+	return wire.FromWires(wireName, newWires)
+}
+
 func (cir *Circuit) AddInputWire(wireName string) *wire.Wire {
 	wire := cir.addWire(wireName)
 	cir.inputWires[wire] = struct{}{}
+	return wire
+}
+
+func (cir *Circuit) AddInputWire32(wireName string) *wire.Wire32 {
+	wire := cir.addWire32(wireName)
+
+	// add the single-bit wires as input wires to the circuit
+	for i := range 32 {
+		cir.inputWires[wire.Wire(i)] = struct{}{}
+	}
+
 	return wire
 }
 
@@ -92,6 +115,21 @@ func (cir *Circuit) AddAuxiliaryWire(wireName string) *wire.Wire {
 func (cir *Circuit) addInternalWire() *wire.Wire {
 	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
 	wire := cir.addWire(wireName)
+	cir.internalWireCount++
+	return wire
+}
+
+// TODO - do we need this?
+func (cir *Circuit) addInternalWire32() *wire.Wire32 {
+	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
+	wire := cir.addWire32(wireName)
+	cir.internalWireCount++
+	return wire
+}
+
+func (cir *Circuit) addInternalWire32FromSingleWires(singleWires [32]*wire.Wire) *wire.Wire32 {
+	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
+	wire := wire.FromWires(wireName, singleWires)
 	cir.internalWireCount++
 	return wire
 }

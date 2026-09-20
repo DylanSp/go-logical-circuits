@@ -64,7 +64,9 @@ func TestBasicGates(t *testing.T) {
 		newOutput = outWire.Signal()
 		assert.Equal(t, wire.High, newOutput)
 	})
+}
 
+func TestSingleBitComponents(t *testing.T) {
 	t.Run("Half adder", func(t *testing.T) {
 		// set up circuit
 		cir := circuit.NewCircuit()
@@ -129,6 +131,65 @@ func TestBasicGates(t *testing.T) {
 			actualCarry := carry.Signal()
 			assert.EqualValues(t, tc.expectedSum, actualSum)
 			assert.EqualValues(t, tc.expectedCarry, actualCarry)
+		}
+	})
+}
+
+func FuzzNot32(f *testing.F) {
+	// set up circuit
+	cir := circuit.NewCircuit()
+	inWire := cir.AddInputWire32("input")
+	outWire := cir.Not32(inWire)
+	cir.Initialize()
+
+	testcases := []uint32{
+		uint32(0),
+		^uint32(0),
+	}
+	for _, tc := range testcases {
+		f.Add(tc)
+	}
+
+	f.Fuzz(func(t *testing.T, input uint32) {
+		// set input wire values
+		changes := []circuit.Change{}
+
+		for i := range 32 {
+			bitmask := uint32(1) << i
+			ithBitIsSet := (input & bitmask) != 0
+
+			ch := circuit.Change{
+				Time: 1,
+				Wire: inWire.Wire(i),
+			}
+			if ithBitIsSet {
+				ch.Signal = wire.High
+			} else {
+				ch.Signal = wire.Low
+			}
+
+			changes = append(changes, ch)
+		}
+
+		// push input values into circuit
+		cir.Propagate(changes...)
+
+		// read and test output values
+		for i := range 32 {
+			bitmask := uint32(1) << i
+			expectedBitValue := (input & bitmask) == 0 // bits set in input should be unset in output
+			var expectedSignal wire.Signal
+			if expectedBitValue {
+				expectedSignal = wire.High
+			} else {
+				expectedSignal = wire.Low
+			}
+
+			actualSignal := outWire.Wire(i).Signal()
+
+			if expectedSignal != actualSignal {
+				t.Errorf("Error finding NOT %v, in wire %v: expected %v, actual %v", input, i, expectedSignal, actualSignal)
+			}
 		}
 	})
 }
