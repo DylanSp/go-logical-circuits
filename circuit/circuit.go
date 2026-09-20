@@ -18,24 +18,51 @@ func (ch Change) String() string {
 	return fmt.Sprintf("%v (t=%v) new value: %v", ch.Wire, ch.Time, ch.Signal)
 }
 
-// processing delay of a single gate (of any time)
-const gateDelay = 2
+// processing delay of a single gate (of any type)
+const gateDelay = 1
 
 type Component struct {
 	// used for checking if a change affects this component
 	// uses a set to enforce uniqueness
-	inputWires map[*wire.Wire]struct{}
+	// NOT a pointer; if we have multiple pointers to the same wire, all those pointers *should* be valid inputs
+	// inputWires map[wire.Wire]struct{}
+
+	// track input wires by name
+	inputWires map[string]struct{}
 
 	// internal logic for responding to changes
 	// does *not* update wires' states; Circuit.ExecuteChanges() will take the changes from this and update states appropriately
 	processChangeLogic func(Change) []Change
 }
 
-func (com Component) HandleChange(ch Change) []Change {
-	if _, ok := com.inputWires[ch.Wire]; !ok {
+// used for setting up cyclic circuits
+func (com *Component) AddInputWire(wireName string) {
+	com.inputWires[wireName] = struct{}{}
+}
+
+func (com *Component) HandleChange(ch Change) []Change {
+	fmt.Println("Input wires for component:")
+	for inputWire := range com.inputWires {
+		fmt.Printf("Wire %v\n", inputWire)
+
+		// fmt.Printf("Wire %v\n", inputWire.Name())
+		// fmt.Printf("  Memory address: %p\n", inputWire)
+	}
+	fmt.Println()
+
+	fmt.Println("Wire from change:")
+	fmt.Printf("Wire %v\n", ch.Wire.Name())
+	// fmt.Printf("  Memory address: %p\n", ch.Wire)
+	// fmt.Println()
+
+	if _, ok := com.inputWires[ch.Wire.Name()]; !ok {
+		fmt.Println("Wire is not an input wire of this component; skipping")
+
 		// the change isn't one of this component's input wires; no changes produced
 		return []Change{}
 	}
+
+	fmt.Println("Processing change")
 
 	return com.processChangeLogic(ch)
 }
@@ -46,7 +73,7 @@ type Circuit struct {
 	inputWires map[*wire.Wire]struct{} // tracked for initialization
 	wires      map[string]*wire.Wire   // all wires by name; tracked to avoid duplicate wires
 
-	components []Component
+	components []*Component
 
 	internalWireCount int // used for giving internal wires unique names
 }
@@ -55,7 +82,7 @@ func NewCircuit() Circuit {
 	return Circuit{
 		wires:             map[string]*wire.Wire{},
 		inputWires:        map[*wire.Wire]struct{}{},
-		components:        []Component{},
+		components:        []*Component{},
 		internalWireCount: 0,
 	}
 }
@@ -134,7 +161,7 @@ func (cir *Circuit) addInternalWire32FromSingleWires(singleWires [32]*wire.Wire)
 	return wire
 }
 
-func (cir *Circuit) addComponents(components ...Component) {
+func (cir *Circuit) addComponents(components ...*Component) {
 	cir.components = append(cir.components, components...)
 }
 
@@ -159,13 +186,13 @@ In the simple case of a single gate:
 // execute a single change, possibly producing further changes
 // the only wire whose signal is actually changed is ch.Wire
 func (cir *Circuit) executeChange(ch Change) []Change {
-	// fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
+	fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 
 	// don't need to check if wire is in circuit;
 	// if it isn't, the change won't propagate to anything in the circuit
 
 	// update wire from change
-	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
+	fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
 	ch.Wire.SetSignal(wire.Signal(ch.Signal))
 
 	// now check for downstream changes
@@ -190,7 +217,7 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 		agenda.AddChange(ch)
 	}
 
-	// fmt.Printf("Propagating from change at t=%v\n", initialChange.Time)
+	fmt.Printf("Propagating from change at t=%v\n", initialChanges[0].Time)
 
 	for agenda.Length() > 0 {
 		nextChanges, _ := agenda.GetNextChanges()
@@ -213,7 +240,7 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 		}
 	}
 
-	// fmt.Printf("Done propagating\n\n")
+	fmt.Printf("Done propagating\n\n")
 }
 
 func (cir *Circuit) Initialize() {
