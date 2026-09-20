@@ -42,6 +42,11 @@ func (w *Wire) Signal() Signal {
 	return w.signal
 }
 
+// utility method to make testing easier
+func (w *Wire) IsHigh() bool {
+	return bool(w.Signal())
+}
+
 func (w *Wire) SetSignal(newSignal Signal) {
 	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", w, newSignal)
 	w.signal = newSignal

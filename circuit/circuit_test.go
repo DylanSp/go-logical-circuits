@@ -159,13 +159,9 @@ func FuzzNot32(f *testing.F) {
 
 		for i := range 32 {
 			ch := circuit.Change{
-				Time: 1,
-				Wire: inWire.Wire(i),
-			}
-			if isBitSet(input, i) {
-				ch.Signal = wire.High
-			} else {
-				ch.Signal = wire.Low
+				Time:   1,
+				Wire:   inWire.Wire(i),
+				Signal: wire.Signal(isBitSet(input, i)),
 			}
 
 			changes = append(changes, ch)
@@ -176,14 +172,7 @@ func FuzzNot32(f *testing.F) {
 
 		// read and test output values
 		for i := range 32 {
-			expectedBitValue := isBitSet(^input, i)
-			var expectedSignal wire.Signal
-			if expectedBitValue {
-				expectedSignal = wire.High
-			} else {
-				expectedSignal = wire.Low
-			}
-
+			expectedSignal := wire.Signal(isBitSet(^input, i))
 			actualSignal := outWire.Wire(i).Signal()
 
 			if expectedSignal != actualSignal {
@@ -210,25 +199,15 @@ func FuzzAnd32(f *testing.F) {
 		changes := []circuit.Change{}
 		for i := range 32 {
 			ch1 := circuit.Change{
-				Time: 1,
-				Wire: inWire1.Wire(i),
+				Time:   1,
+				Wire:   inWire1.Wire(i),
+				Signal: wire.Signal(isBitSet(input1, i)),
 			}
-			if isBitSet(input1, i) {
-				ch1.Signal = wire.High
-			} else {
-				ch1.Signal = wire.Low
-			}
-
 			ch2 := circuit.Change{
-				Time: 1,
-				Wire: inWire2.Wire(i),
+				Time:   1,
+				Wire:   inWire2.Wire(i),
+				Signal: wire.Signal(isBitSet(input2, i)),
 			}
-			if isBitSet(input2, i) {
-				ch2.Signal = wire.High
-			} else {
-				ch2.Signal = wire.Low
-			}
-
 			changes = append(changes, ch1, ch2)
 		}
 
@@ -237,14 +216,7 @@ func FuzzAnd32(f *testing.F) {
 
 		// read and test output values
 		for i := range 32 {
-			expectedBitValue := isBitSet(input1&input2, i)
-			var expectedSignal wire.Signal
-			if expectedBitValue {
-				expectedSignal = wire.High
-			} else {
-				expectedSignal = wire.Low
-			}
-
+			expectedSignal := wire.Signal(isBitSet(input1&input2, i))
 			actualSignal := outWire.Wire(i).Signal()
 
 			if expectedSignal != actualSignal {
