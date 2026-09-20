@@ -43,7 +43,7 @@ func (w *Wire) Signal() Signal {
 }
 
 func (w *Wire) SetSignal(newSignal Signal) {
-	fmt.Printf("Calling SetSignal on wire %v with value %v\n", w, newSignal)
+	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", w, newSignal)
 	w.signal = newSignal
 }
 
