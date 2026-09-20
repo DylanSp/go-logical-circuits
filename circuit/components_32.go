@@ -20,3 +20,22 @@ func (cir *Circuit) Not32(in *wire.Wire32) *wire.Wire32 {
 
 	return out
 }
+
+func binaryGateFactory32(
+	gate func(*wire.Wire, *wire.Wire) *wire.Wire,
+) func(*Circuit, *wire.Wire32, *wire.Wire32) *wire.Wire32 {
+	return func(cir *Circuit, in1, in2 *wire.Wire32) *wire.Wire32 {
+		outWires := [32]*wire.Wire{}
+
+		for i := range 32 {
+			outWires[i] = gate(in1.Wire(i), in2.Wire(i))
+		}
+
+		out := cir.addInternalWire32FromSingleWires(outWires)
+		return out
+	}
+}
+
+func (cir *Circuit) And32(in1, in2 *wire.Wire32) *wire.Wire32 {
+	return binaryGateFactory32(cir.And)(cir, in1, in2)
+}
