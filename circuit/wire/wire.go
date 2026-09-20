@@ -90,3 +90,16 @@ func (w *Wire32) AllWires() [32]*Wire {
 func (w *Wire32) Wire(i int) *Wire {
 	return w.wires[i]
 }
+
+func (w *Wire32) AsUint32() uint32 {
+	value := uint32(0)
+
+	for i := range 32 {
+		if w.Wire(i).Signal() == High {
+			// set i'th bit of value
+			value |= (uint32(1) << i)
+		}
+	}
+
+	return value
+}
