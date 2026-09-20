@@ -18,3 +18,6 @@ fuzz-not:
 
 fuzz-and:
     go test -fuzz=FuzzAnd32 -fuzztime 10s "github.com/DylanSp/go-logical-circuits/circuit"
+
+fuzz-add:
+    go test -fuzz=FuzzFullAdder32 -fuzztime 10s "github.com/DylanSp/go-logical-circuits/circuit"

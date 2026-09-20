@@ -261,6 +261,64 @@ func FuzzAnd32(f *testing.F) {
 	})
 }
 
+func FuzzFullAdder32(f *testing.F) {
+	// set up circuit
+	cir := circuit.NewCircuit()
+	inWire1 := cir.AddInputWire32("input1")
+	inWire2 := cir.AddInputWire32("input2")
+	sumWire, _ := cir.FullAdder32(inWire1, inWire2)
+	cir.Initialize()
+
+	// seed test corpus
+	f.Add(uint32(0), uint32(0))
+
+	f.Fuzz(func(t *testing.T, input1 uint32, input2 uint32) {
+		// set input wire values
+		changes := []circuit.Change{}
+
+		for i := range 32 {
+			ch1 := circuit.Change{
+				Time: 1,
+				Wire: inWire1.Wire(i),
+			}
+			if isBitSet(input1, i) {
+				ch1.Signal = wire.High
+			} else {
+				ch1.Signal = wire.Low
+			}
+
+			ch2 := circuit.Change{
+				Time: 1,
+				Wire: inWire2.Wire(i),
+			}
+			if isBitSet(input2, i) {
+				ch2.Signal = wire.High
+			} else {
+				ch2.Signal = wire.Low
+			}
+
+			changes = append(changes, ch1, ch2)
+		}
+
+		// push input values into circuit
+		cir.Propagate(changes...)
+
+		// read and test output value
+		expectedValue := uint32(input1 + input2)
+		actualValue := sumWire.AsUint32()
+
+		if expectedValue != actualValue {
+			t.Errorf(
+				"Error calculating %v + %v: expected %v, actual %v",
+				input1,
+				input2,
+				expectedValue,
+				actualValue,
+			)
+		}
+	})
+}
+
 func isBitSet(n uint32, idx int) bool {
 	bitmask := uint32(1) << idx
 	return (n & bitmask) != 0

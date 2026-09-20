@@ -59,3 +59,29 @@ func (cir *Circuit) Nor32(in1, in2 *wire.Wire32) *wire.Wire32 {
 func (cir *Circuit) Xnor32(in1, in2 *wire.Wire32) *wire.Wire32 {
 	return binaryGateFactory32(cir.Xnor)(cir, in1, in2)
 }
+
+// ripple adder
+// TODO - should overflow output be a Wire32 for consistency?
+func (cir *Circuit) FullAdder32(in1, in2 *wire.Wire32) (*wire.Wire32, *wire.Wire) {
+	sumOutWires := [32]*wire.Wire{}
+
+	// half adder for bit 0 (least significant bit)
+	sum0, carryIn := cir.HalfAdder(in1.Wire(0), in2.Wire(0))
+	sumOutWires[0] = sum0
+
+	// for bits 1 through 30: full adders, passing carries through
+	for i := range 31 {
+		bitNumber := i + 1
+		sum, carryOut := cir.FullAdder(in1.Wire(bitNumber), in2.Wire(bitNumber), carryIn)
+		sumOutWires[bitNumber] = sum
+		carryIn = carryOut
+	}
+
+	// for bit 31 (most significant bit), use carryOut to detect overflow
+	sum31, overflow := cir.FullAdder(in1.Wire(31), in2.Wire(31), carryIn)
+	sumOutWires[31] = sum31
+
+	sumOut := cir.addInternalWire32FromSingleWires(sumOutWires)
+
+	return sumOut, overflow
+}
