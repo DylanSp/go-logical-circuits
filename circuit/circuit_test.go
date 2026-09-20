@@ -158,14 +158,11 @@ func FuzzNot32(f *testing.F) {
 		changes := []circuit.Change{}
 
 		for i := range 32 {
-			bitmask := uint32(1) << i
-			ithBitIsSet := (input & bitmask) != 0
-
 			ch := circuit.Change{
 				Time: 1,
 				Wire: inWire.Wire(i),
 			}
-			if ithBitIsSet {
+			if isBitSet(input, i) {
 				ch.Signal = wire.High
 			} else {
 				ch.Signal = wire.Low
@@ -179,8 +176,7 @@ func FuzzNot32(f *testing.F) {
 
 		// read and test output values
 		for i := range 32 {
-			bitmask := uint32(1) << i
-			expectedBitValue := (input & bitmask) == 0 // bits set in input should be unset in output
+			expectedBitValue := isBitSet(^input, i)
 			var expectedSignal wire.Signal
 			if expectedBitValue {
 				expectedSignal = wire.High
