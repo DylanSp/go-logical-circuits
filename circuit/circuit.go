@@ -41,7 +41,7 @@ func (com Component) HandleChange(ch Change) []Change {
 }
 
 type Circuit struct {
-	// TODO - instead of tracking inputWires separately, initialize by setting a single wire to Low, then propagating?
+	// TODO - instead of tracking inputWires separately, initialize by setting a single wire (or all wires) to Low, then propagating?
 	// TODO - would allow just having a single AddWire() method instead of Add{Input,Output,Auxiliary}Wire/
 	inputWires map[*wire.Wire]struct{} // tracked for initialization
 	wires      map[string]*wire.Wire   // all wires by name; tracked to avoid duplicate wires
@@ -159,7 +159,7 @@ In the simple case of a single gate:
 // execute a single change, possibly producing further changes
 // the only wire whose signal is actually changed is ch.Wire
 func (cir *Circuit) executeChange(ch Change) []Change {
-	fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
+	// fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 
 	// don't need to check if wire is in circuit;
 	// if it isn't, the change won't propagate to anything in the circuit
@@ -201,6 +201,11 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 			// don't check if prevSignal == newSignal;
 			// that's only an early-out optimization,
 			// and not having it messes with circuit initialization
+
+			// alternative potential optimization - early-out by looking at *output*
+			// look at each downstream change and compare to previous value of affected wire,
+			// only add change to agenda if the affected wire's value would be changed
+
 			downstreamChanges := cir.executeChange(nextChange)
 			for _, downstream := range downstreamChanges {
 				agenda.AddChange(downstream)
@@ -208,7 +213,7 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 		}
 	}
 
-	fmt.Printf("Done propagating\n\n")
+	// fmt.Printf("Done propagating\n\n")
 }
 
 func (cir *Circuit) Initialize() {
