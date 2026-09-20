@@ -135,9 +135,6 @@ func TestSingleBitComponents(t *testing.T) {
 	})
 }
 
-// TODO - refactor - add utility functions to break up uint32 into signals?
-// TODO - maybe also add utility functions for testing output values more concisely?
-
 func FuzzNot32(f *testing.F) {
 	// set up circuit
 	cir := circuit.NewCircuit()
@@ -238,11 +235,12 @@ func FuzzFullAdder32(f *testing.F) {
 	cir := circuit.NewCircuit()
 	inWire1 := cir.AddInputWire32("input1")
 	inWire2 := cir.AddInputWire32("input2")
-	sumWire, _ := cir.FullAdder32(inWire1, inWire2)
+	sumWire, overflow := cir.FullAdder32(inWire1, inWire2)
 	cir.Initialize()
 
 	// seed test corpus
 	f.Add(uint32(0), uint32(0))
+	f.Add(^uint32(0), uint32(1))
 
 	f.Fuzz(func(t *testing.T, input1 uint32, input2 uint32) {
 		// set input wire values
@@ -250,25 +248,15 @@ func FuzzFullAdder32(f *testing.F) {
 
 		for i := range 32 {
 			ch1 := circuit.Change{
-				Time: 1,
-				Wire: inWire1.Wire(i),
+				Time:   1,
+				Wire:   inWire1.Wire(i),
+				Signal: wire.Signal(isBitSet(input1, i)),
 			}
-			if isBitSet(input1, i) {
-				ch1.Signal = wire.High
-			} else {
-				ch1.Signal = wire.Low
-			}
-
 			ch2 := circuit.Change{
-				Time: 1,
-				Wire: inWire2.Wire(i),
+				Time:   1,
+				Wire:   inWire2.Wire(i),
+				Signal: wire.Signal(isBitSet(input2, i)),
 			}
-			if isBitSet(input2, i) {
-				ch2.Signal = wire.High
-			} else {
-				ch2.Signal = wire.Low
-			}
-
 			changes = append(changes, ch1, ch2)
 		}
 
@@ -286,6 +274,19 @@ func FuzzFullAdder32(f *testing.F) {
 				input2,
 				expectedValue,
 				actualValue,
+			)
+		}
+
+		expectedOverflow := (uint64(input1) + uint64(input2)) != uint64(expectedValue)
+		actualOverflow := overflow.IsHigh()
+
+		if expectedOverflow != actualOverflow {
+			t.Errorf(
+				"Error detecting overflow when calculating %v + %v: expected %v, actual %v",
+				input1,
+				input2,
+				expectedOverflow,
+				actualOverflow,
 			)
 		}
 	})
