@@ -1,22 +1,22 @@
 package circuit
 
+import "fmt"
+
 func (cir *Circuit) Not(in *Wire) *Wire {
 	gate := cir.addInternalWire()
 	gate.SetInputs(in)
-
-	out := cir.addInternalWire()
 
 	gate.processChangeLogic = func(ch Change) []Change {
 		return []Change{
 			{
 				Time:   ch.Time + gateDelay,
-				Wire:   out,
+				Wire:   gate,
 				Signal: !ch.Signal,
 			},
 		}
 	}
 
-	return out
+	return gate
 }
 
 func binaryGateFactory(truthTable func(Signal, Signal) Signal) func(*Circuit, *Wire, *Wire) *Wire {
@@ -24,19 +24,17 @@ func binaryGateFactory(truthTable func(Signal, Signal) Signal) func(*Circuit, *W
 		gate := cir.addInternalWire()
 		gate.SetInputs(in1, in2)
 
-		out := cir.addInternalWire()
-
 		gate.processChangeLogic = func(ch Change) []Change {
 			return []Change{
 				{
 					Time:   ch.Time + gateDelay,
-					Wire:   out,
+					Wire:   gate,
 					Signal: truthTable(in1.Signal(), in2.Signal()),
 				},
 			}
 		}
 
-		return out
+		return gate
 	}
 }
 
@@ -93,13 +91,11 @@ func (cir *Circuit) Noop(in *Wire) *Wire {
 	gate := cir.addInternalWire()
 	gate.SetInputs(in)
 
-	out := cir.addInternalWire()
-
 	gate.processChangeLogic = func(ch Change) []Change {
 		return []Change{
 			{
 				Time:   ch.Time + gateDelay,
-				Wire:   out,
+				Wire:   gate,
 				Signal: ch.Signal,
 			},
 		}
@@ -109,32 +105,32 @@ func (cir *Circuit) Noop(in *Wire) *Wire {
 }
 
 // TODO - revamp
-// func (cir *Circuit) Clock(period int) *Wire {
-// 	if period <= 0 {
-// 		panic(fmt.Sprintf("Unable to create clock with period %v; period must be at least 1", period))
-// 	}
+func (cir *Circuit) Clock(period int) *Wire {
+	if period <= 0 {
+		panic(fmt.Sprintf("Unable to create clock with period %v; period must be at least 1", period))
+	}
 
-// 	// delays := []Component{}
-// 	// dummyWire := cir.addInternalWire()
+	// delays := []Component{}
+	// dummyWire := cir.addInternalWire()
 
-// 	in := cir.addInternalWire() // dummy wire for initial input; will be irrelevant once we set up loopback
-// 	var out *Wire
+	in := cir.addInternalWire() // dummy wire for initial input; will be irrelevant once we set up loopback
+	var out *Wire
 
-// 	var initialNoop *Component
+	var initialNoop *Wire
 
-// 	// chain of (period - 1) no-ops to delay clock signal, followed by NOT gate to invert signal after `period` ticks
-// 	for i := range period - 1 {
-// 		gate, out := cir.Noop(in)
-// 		if i == 0 {
-// 			initialNoop = gate
-// 		}
+	// chain of (period - 1) no-ops to delay clock signal, followed by NOT gate to invert signal after `period` ticks
+	for i := range period - 1 {
+		out = cir.Noop(in)
+		if i == 0 {
+			initialNoop = out
+		}
 
-// 		in = out
-// 	}
+		in = out
+	}
 
-// 	// set up loopback, connect to first Noop component
-// 	loopbackWire := cir.Not(out)
-// 	initialNoop.AddInputWire(loopbackWire.Name())
+	// set up loopback, connect to first Noop component
+	loopbackWire := cir.Not(out)
+	initialNoop.SetInputs(loopbackWire)
 
-// 	return out
-// }
+	return out
+}
