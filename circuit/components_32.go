@@ -1,19 +1,10 @@
 package circuit
 
-import "github.com/DylanSp/go-logical-circuits/circuit/wire"
-
-func (cir *Circuit) Not32(in *wire.Wire32) *wire.Wire32 {
-	// don't think we necessary need this? the individual Components will be the single-bit Not gates
-	// may be helpful for later optimization/tooling, though
-	// gate := Component{
-	// inputWires: map[*wire.Wire]struct{}{},
-	// }
-
-	outWires := [32]*wire.Wire{}
+func (cir *Circuit) Not32(in *Wire32) *Wire32 {
+	outWires := [32]*Wire{}
 
 	for i, singleIn := range in.AllWires() {
 		outWires[i] = cir.Not(singleIn)
-		// gate.inputWires[singleIn] = struct{}{}
 	}
 
 	out := cir.addInternalWire32FromSingleWires(outWires)
@@ -22,10 +13,10 @@ func (cir *Circuit) Not32(in *wire.Wire32) *wire.Wire32 {
 }
 
 func binaryGateFactory32(
-	gate func(*wire.Wire, *wire.Wire) *wire.Wire,
-) func(*Circuit, *wire.Wire32, *wire.Wire32) *wire.Wire32 {
-	return func(cir *Circuit, in1, in2 *wire.Wire32) *wire.Wire32 {
-		outWires := [32]*wire.Wire{}
+	gate func(*Wire, *Wire) *Wire,
+) func(*Circuit, *Wire32, *Wire32) *Wire32 {
+	return func(cir *Circuit, in1, in2 *Wire32) *Wire32 {
+		outWires := [32]*Wire{}
 
 		for i := range 32 {
 			outWires[i] = gate(in1.Wire(i), in2.Wire(i))
@@ -36,34 +27,34 @@ func binaryGateFactory32(
 	}
 }
 
-func (cir *Circuit) And32(in1, in2 *wire.Wire32) *wire.Wire32 {
+func (cir *Circuit) And32(in1, in2 *Wire32) *Wire32 {
 	return binaryGateFactory32(cir.And)(cir, in1, in2)
 }
 
-func (cir *Circuit) Or32(in1, in2 *wire.Wire32) *wire.Wire32 {
+func (cir *Circuit) Or32(in1, in2 *Wire32) *Wire32 {
 	return binaryGateFactory32(cir.Or)(cir, in1, in2)
 }
 
-func (cir *Circuit) Xor32(in1, in2 *wire.Wire32) *wire.Wire32 {
+func (cir *Circuit) Xor32(in1, in2 *Wire32) *Wire32 {
 	return binaryGateFactory32(cir.Xor)(cir, in1, in2)
 }
 
-func (cir *Circuit) Nand32(in1, in2 *wire.Wire32) *wire.Wire32 {
+func (cir *Circuit) Nand32(in1, in2 *Wire32) *Wire32 {
 	return binaryGateFactory32(cir.Nand)(cir, in1, in2)
 }
 
-func (cir *Circuit) Nor32(in1, in2 *wire.Wire32) *wire.Wire32 {
+func (cir *Circuit) Nor32(in1, in2 *Wire32) *Wire32 {
 	return binaryGateFactory32(cir.Nor)(cir, in1, in2)
 }
 
-func (cir *Circuit) Xnor32(in1, in2 *wire.Wire32) *wire.Wire32 {
+func (cir *Circuit) Xnor32(in1, in2 *Wire32) *Wire32 {
 	return binaryGateFactory32(cir.Xnor)(cir, in1, in2)
 }
 
 // ripple adder
 // TODO - should overflow output be a Wire32 for consistency?
-func (cir *Circuit) FullAdder32(in1, in2 *wire.Wire32) (*wire.Wire32, *wire.Wire) {
-	sumOutWires := [32]*wire.Wire{}
+func (cir *Circuit) FullAdder32(in1, in2 *Wire32) (*Wire32, *Wire) {
+	sumOutWires := [32]*Wire{}
 
 	// half adder for bit 0 (least significant bit)
 	sum0, carry := cir.HalfAdder(in1.Wire(0), in2.Wire(0))

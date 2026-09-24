@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/DylanSp/go-logical-circuits/circuit"
-	"github.com/DylanSp/go-logical-circuits/circuit/wire"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,14 +64,14 @@ func TestChangeQueue(t *testing.T) {
 
 		change1 := circuit.Change{
 			Time:   5,
-			Wire:   wire.New("wire1"),
+			Wire:   circuit.NewWire("wire1"),
 			Signal: false,
 		}
 		queue.AddChange(change1)
 
 		change2 := circuit.Change{
 			Time:   5,
-			Wire:   wire.New("wire2"),
+			Wire:   circuit.NewWire("wire2"),
 			Signal: true,
 		}
 		queue.AddChange(change2)
@@ -80,7 +79,7 @@ func TestChangeQueue(t *testing.T) {
 		// this should *not* be popped on first call to GetNextChanges()
 		laterChange := circuit.Change{
 			Time:   100,
-			Wire:   wire.New("later"),
+			Wire:   circuit.NewWire("later"),
 			Signal: true,
 		}
 		queue.AddChange(laterChange)

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/DylanSp/go-logical-circuits/circuit"
-	"github.com/DylanSp/go-logical-circuits/circuit/wire"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,18 +18,18 @@ func TestBasicGates(t *testing.T) {
 
 		// validate initial output
 		initializedOutput := outWire.Signal()
-		assert.Equal(t, wire.High, initializedOutput)
+		assert.Equal(t, circuit.High, initializedOutput)
 
 		// start proper testing
 		highInput := circuit.Change{
 			Time:   10,
 			Wire:   inWire,
-			Signal: wire.High,
+			Signal: circuit.High,
 		}
 		cir.Propagate(highInput)
 
 		newOutput := outWire.Signal()
-		assert.Equal(t, wire.Low, newOutput)
+		assert.Equal(t, circuit.Low, newOutput)
 	})
 
 	t.Run("AND gate", func(t *testing.T) {
@@ -46,23 +45,23 @@ func TestBasicGates(t *testing.T) {
 		high1Input := circuit.Change{
 			Time:   10,
 			Wire:   in1,
-			Signal: wire.High,
+			Signal: circuit.High,
 		}
 		cir.Propagate(high1Input)
 
 		newOutput := outWire.Signal()
-		assert.Equal(t, wire.Low, newOutput)
+		assert.Equal(t, circuit.Low, newOutput)
 
 		// test that High && High == High
 		high2Input := circuit.Change{
 			Time:   10,
 			Wire:   in2,
-			Signal: wire.High,
+			Signal: circuit.High,
 		}
 		cir.Propagate(high2Input)
 
 		newOutput = outWire.Signal()
-		assert.Equal(t, wire.High, newOutput)
+		assert.Equal(t, circuit.High, newOutput)
 	})
 }
 
@@ -75,38 +74,38 @@ func TestSingleBitComponents(t *testing.T) {
 		sum, carry := cir.HalfAdder(in1, in2)
 
 		testCases := []struct {
-			in1Value      wire.Signal
-			in2Value      wire.Signal
-			expectedSum   wire.Signal
-			expectedCarry wire.Signal
+			in1Value      circuit.Signal
+			in2Value      circuit.Signal
+			expectedSum   circuit.Signal
+			expectedCarry circuit.Signal
 		}{
 			{
-				in1Value: wire.Low,
-				in2Value: wire.Low,
+				in1Value: circuit.Low,
+				in2Value: circuit.Low,
 
-				expectedSum:   wire.Low,
-				expectedCarry: wire.Low,
+				expectedSum:   circuit.Low,
+				expectedCarry: circuit.Low,
 			},
 			{
-				in1Value: wire.Low,
-				in2Value: wire.High,
+				in1Value: circuit.Low,
+				in2Value: circuit.High,
 
-				expectedSum:   wire.High,
-				expectedCarry: wire.Low,
+				expectedSum:   circuit.High,
+				expectedCarry: circuit.Low,
 			},
 			{
-				in1Value: wire.High,
-				in2Value: wire.Low,
+				in1Value: circuit.High,
+				in2Value: circuit.Low,
 
-				expectedSum:   wire.High,
-				expectedCarry: wire.Low,
+				expectedSum:   circuit.High,
+				expectedCarry: circuit.Low,
 			},
 			{
-				in1Value: wire.High,
-				in2Value: wire.High,
+				in1Value: circuit.High,
+				in2Value: circuit.High,
 
-				expectedSum:   wire.Low,
-				expectedCarry: wire.High,
+				expectedSum:   circuit.Low,
+				expectedCarry: circuit.High,
 			},
 		}
 
@@ -158,7 +157,7 @@ func FuzzNot32(f *testing.F) {
 			ch := circuit.Change{
 				Time:   1,
 				Wire:   inWire.Wire(i),
-				Signal: wire.Signal(isBitSet(input, i)),
+				Signal: circuit.Signal(isBitSet(input, i)),
 			}
 
 			changes = append(changes, ch)
@@ -169,7 +168,7 @@ func FuzzNot32(f *testing.F) {
 
 		// read and test output values
 		for i := range 32 {
-			expectedSignal := wire.Signal(isBitSet(^input, i))
+			expectedSignal := circuit.Signal(isBitSet(^input, i))
 			actualSignal := outWire.Wire(i).Signal()
 
 			if expectedSignal != actualSignal {
@@ -198,12 +197,12 @@ func FuzzAnd32(f *testing.F) {
 			ch1 := circuit.Change{
 				Time:   1,
 				Wire:   inWire1.Wire(i),
-				Signal: wire.Signal(isBitSet(input1, i)),
+				Signal: circuit.Signal(isBitSet(input1, i)),
 			}
 			ch2 := circuit.Change{
 				Time:   1,
 				Wire:   inWire2.Wire(i),
-				Signal: wire.Signal(isBitSet(input2, i)),
+				Signal: circuit.Signal(isBitSet(input2, i)),
 			}
 			changes = append(changes, ch1, ch2)
 		}
@@ -213,7 +212,7 @@ func FuzzAnd32(f *testing.F) {
 
 		// read and test output values
 		for i := range 32 {
-			expectedSignal := wire.Signal(isBitSet(input1&input2, i))
+			expectedSignal := circuit.Signal(isBitSet(input1&input2, i))
 			actualSignal := outWire.Wire(i).Signal()
 
 			if expectedSignal != actualSignal {
@@ -250,12 +249,12 @@ func FuzzFullAdder32(f *testing.F) {
 			ch1 := circuit.Change{
 				Time:   1,
 				Wire:   inWire1.Wire(i),
-				Signal: wire.Signal(isBitSet(input1, i)),
+				Signal: circuit.Signal(isBitSet(input1, i)),
 			}
 			ch2 := circuit.Change{
 				Time:   1,
 				Wire:   inWire2.Wire(i),
-				Signal: wire.Signal(isBitSet(input2, i)),
+				Signal: circuit.Signal(isBitSet(input2, i)),
 			}
 			changes = append(changes, ch1, ch2)
 		}

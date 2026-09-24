@@ -2,16 +2,14 @@ package circuit
 
 import (
 	"fmt"
-
-	"github.com/DylanSp/go-logical-circuits/circuit/wire"
 )
 
 // single change in a single wire
 type Change struct {
 	Time int
 
-	Wire   *wire.Wire
-	Signal wire.Signal
+	Wire   *Wire
+	Signal Signal
 }
 
 func (ch Change) String() string {
@@ -69,54 +67,51 @@ func (com *Component) HandleChange(ch Change) []Change {
 
 type Circuit struct {
 	// TODO - instead of tracking inputWires separately, initialize by setting a single wire (or all wires) to Low, then propagating?
-	// TODO - would allow just having a single AddWire() method instead of Add{Input,Output,Auxiliary}Wire/
-	inputWires map[*wire.Wire]struct{} // tracked for initialization
-	wires      map[string]*wire.Wire   // all wires by name; tracked to avoid duplicate wires
-
-	components []*Component
+	// TODO - would allow just having a single AddWire() method instead of Add{Input,Output,Auxiliary}Wire
+	inputWires map[*Wire]struct{} // tracked for initialization
+	wires      map[string]*Wire   // all wires by name; tracked to avoid duplicate wires
 
 	internalWireCount int // used for giving internal wires unique names
 }
 
 func NewCircuit() Circuit {
 	return Circuit{
-		wires:             map[string]*wire.Wire{},
-		inputWires:        map[*wire.Wire]struct{}{},
-		components:        []*Component{},
+		wires:             map[string]*Wire{},
+		inputWires:        map[*Wire]struct{}{},
 		internalWireCount: 0,
 	}
 }
 
 // return the added wire so callers can refer to it for setting up components
-func (cir *Circuit) addWire(wireName string) *wire.Wire {
+func (cir *Circuit) addWire(wireName string) *Wire {
 	_, hasWire := cir.wires[wireName]
 	if hasWire {
 		panic(fmt.Sprintf("Wire %v already present", wireName))
 	}
 
-	newWire := wire.New(wireName)
+	newWire := NewWire(wireName)
 	cir.wires[wireName] = newWire
 
 	return newWire
 }
 
-func (cir *Circuit) addWire32(wireName string) *wire.Wire32 {
+func (cir *Circuit) addWire32(wireName string) *Wire32 {
 	// TODO - check if wire is already present? (circuit would need another field to track Wire32's)
 
-	newWires := [32]*wire.Wire{}
+	newWires := [32]*Wire{}
 	for i := range 32 {
 		newWires[i] = cir.addWire(fmt.Sprintf("%v-%v", wireName, i))
 	}
-	return wire.FromWires(wireName, newWires)
+	return FromWires(wireName, newWires)
 }
 
-func (cir *Circuit) AddInputWire(wireName string) *wire.Wire {
+func (cir *Circuit) AddInputWire(wireName string) *Wire {
 	wire := cir.addWire(wireName)
 	cir.inputWires[wire] = struct{}{}
 	return wire
 }
 
-func (cir *Circuit) AddInputWire32(wireName string) *wire.Wire32 {
+func (cir *Circuit) AddInputWire32(wireName string) *Wire32 {
 	wire := cir.addWire32(wireName)
 
 	// add the single-bit wires as input wires to the circuit
@@ -127,19 +122,8 @@ func (cir *Circuit) AddInputWire32(wireName string) *wire.Wire32 {
 	return wire
 }
 
-func (cir *Circuit) AddOutputWire(wireName string) *wire.Wire {
-	wire := cir.addWire(wireName)
-	return wire
-}
-
-// auxiliary wires - neither inputs nor outputs
-func (cir *Circuit) AddAuxiliaryWire(wireName string) *wire.Wire {
-	wire := cir.addWire(wireName)
-	return wire
-}
-
 // used for adding internal wires inside compound components
-func (cir *Circuit) addInternalWire() *wire.Wire {
+func (cir *Circuit) addInternalWire() *Wire {
 	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
 	wire := cir.addWire(wireName)
 	cir.internalWireCount++
@@ -147,22 +131,18 @@ func (cir *Circuit) addInternalWire() *wire.Wire {
 }
 
 // TODO - do we need this?
-func (cir *Circuit) addInternalWire32() *wire.Wire32 {
+func (cir *Circuit) addInternalWire32() *Wire32 {
 	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
 	wire := cir.addWire32(wireName)
 	cir.internalWireCount++
 	return wire
 }
 
-func (cir *Circuit) addInternalWire32FromSingleWires(singleWires [32]*wire.Wire) *wire.Wire32 {
+func (cir *Circuit) addInternalWire32FromSingleWires(singleWires [32]*Wire) *Wire32 {
 	wireName := fmt.Sprintf("internal-%v", cir.internalWireCount)
-	wire := wire.FromWires(wireName, singleWires)
+	wire := FromWires(wireName, singleWires)
 	cir.internalWireCount++
 	return wire
-}
-
-func (cir *Circuit) addComponents(components ...*Component) {
-	cir.components = append(cir.components, components...)
 }
 
 /*****
@@ -171,8 +151,8 @@ Overall flow of changes:
 2. Propagate() adds this as the initial change to agenda
 3. Propagate() pops the next Change(s) to be made from the agenda, passes it/them to executeChange()
 4. executeChange() updates the change's wire with the new signal from the change
-5. executeChange() calls .HandleChange() on all components to see if any new changes are created
-6. Any component with an input wire whose signal was changed creates a new Change with the updated value for output wires, returns it from HandleChange()
+5. executeChange() calls .HandleChange() on all wires to see if any new changes are created
+6. Any wires with an input wire whose signal was changed create a new Change with the updated value for output wires, returns it from HandleChange()
 7. All Changes created this way are collected by executeChange() and passed back to Propagate(), which adds them to the agenda
 8. Propagate() returns to step 3; this loops until there are no more downstream changes to execute
 
@@ -186,19 +166,19 @@ In the simple case of a single gate:
 // execute a single change, possibly producing further changes
 // the only wire whose signal is actually changed is ch.Wire
 func (cir *Circuit) executeChange(ch Change) []Change {
-	fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
+	// fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 
 	// don't need to check if wire is in circuit;
 	// if it isn't, the change won't propagate to anything in the circuit
 
 	// update wire from change
-	fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
-	ch.Wire.SetSignal(wire.Signal(ch.Signal))
+	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
+	ch.Wire.SetSignal(ch.Signal)
 
 	// now check for downstream changes
 	downstreamChanges := []Change{}
-	for _, com := range cir.components {
-		changeResults := com.HandleChange(ch)
+	for _, w := range cir.wires {
+		changeResults := w.HandleChange(ch)
 		for _, chResult := range changeResults {
 			downstreamChanges = append(downstreamChanges, chResult)
 		}
@@ -217,7 +197,7 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 		agenda.AddChange(ch)
 	}
 
-	fmt.Printf("Propagating from change at t=%v\n", initialChanges[0].Time)
+	// fmt.Printf("Propagating from change at t=%v\n", initialChanges[0].Time)
 
 	for agenda.Length() > 0 {
 		nextChanges, _ := agenda.GetNextChanges()
@@ -240,7 +220,7 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 		}
 	}
 
-	fmt.Printf("Done propagating\n\n")
+	// fmt.Printf("Done propagating\n\n")
 }
 
 func (cir *Circuit) Initialize() {
@@ -250,7 +230,7 @@ func (cir *Circuit) Initialize() {
 		inputInitializations = append(inputInitializations, Change{
 			Time:   0,
 			Wire:   inWire,
-			Signal: wire.Low,
+			Signal: Low,
 		})
 	}
 
