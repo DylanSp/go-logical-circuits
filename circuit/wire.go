@@ -1,6 +1,8 @@
 package circuit
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Signal bool
 
@@ -56,7 +58,6 @@ func (w *Wire) IsHigh() bool {
 }
 
 func (w *Wire) SetSignal(newSignal Signal) {
-	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", w, newSignal)
 	w.signal = newSignal
 }
 
@@ -66,7 +67,6 @@ func (w *Wire) AddInput(newInput *Wire) {
 	w.inputWires[newInput.Name()] = struct{}{}
 }
 
-// TODO - is this needed?
 // resets input wires to the new inputs
 func (w *Wire) SetInputs(newInputs ...*Wire) {
 	w.inputWires = map[string]struct{}{}
@@ -77,28 +77,10 @@ func (w *Wire) SetInputs(newInputs ...*Wire) {
 }
 
 func (w *Wire) HandleChange(ch Change) []Change {
-	// fmt.Println("Input wires for component:")
-	// for inputWire := range w.inputWires {
-	// fmt.Printf("Wire %v\n", inputWire)
-
-	// fmt.Printf("Wire %v\n", inputWire.Name())
-	// fmt.Printf("  Memory address: %p\n", inputWire)
-	// }
-	// fmt.Println()
-
-	// fmt.Println("Wire from change:")
-	// fmt.Printf("Wire %v\n", ch.Wire.Name())
-	// fmt.Printf("  Memory address: %p\n", ch.Wire)
-	// fmt.Println()
-
 	if _, ok := w.inputWires[ch.Wire.Name()]; !ok {
-		// fmt.Println("Wire is not an input wire of this component; skipping")
-
 		// the change isn't one of this component's input wires; no changes produced
 		return []Change{}
 	}
-
-	// fmt.Println("Processing change")
 
 	return w.processChangeLogic(ch)
 }

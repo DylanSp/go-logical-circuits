@@ -2,6 +2,8 @@ package circuit
 
 import (
 	"fmt"
+
+	"github.com/DylanSp/go-logical-circuits/log"
 )
 
 // single change in a single wire
@@ -166,13 +168,13 @@ In the simple case of a single gate:
 // execute a single change, possibly producing further changes
 // the only wire whose signal is actually changed is ch.Wire
 func (cir *Circuit) executeChange(ch Change) []Change {
-	// fmt.Printf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
+	log.Logf("Executing change at t=%v, Changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 
 	// don't need to check if wire is in circuit;
 	// if it isn't, the change won't propagate to anything in the circuit
 
 	// update wire from change
-	// fmt.Printf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
+	log.Logf("Calling SetSignal on wire %v with value %v\n", ch.Wire, ch.Signal)
 	ch.Wire.SetSignal(ch.Signal)
 
 	// now check for downstream changes
@@ -197,7 +199,7 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 		agenda.AddChange(ch)
 	}
 
-	// fmt.Printf("Propagating from change at t=%v\n", initialChanges[0].Time)
+	log.Logf("Propagating from change at t=%v\n", initialChanges[0].Time)
 
 	for agenda.Length() > 0 {
 		nextChanges, _ := agenda.GetNextChanges()
@@ -220,7 +222,7 @@ func (cir *Circuit) Propagate(initialChanges ...Change) {
 		}
 	}
 
-	// fmt.Printf("Done propagating\n\n")
+	log.Logf("Done propagating\n\n")
 }
 
 func (cir *Circuit) Initialize() {

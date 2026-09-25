@@ -8,6 +8,9 @@ build:
 run:
     go run main.go
 
+debug:
+    DEBUG=1 go run main.go
+
 test:
     go test ./...
 
