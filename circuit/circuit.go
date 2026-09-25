@@ -21,52 +21,6 @@ func (ch Change) String() string {
 // processing delay of a single gate (of any type)
 const gateDelay = 1
 
-type Component struct {
-	// used for checking if a change affects this component
-	// uses a set to enforce uniqueness
-	// NOT a pointer; if we have multiple pointers to the same wire, all those pointers *should* be valid inputs
-	// inputWires map[wire.Wire]struct{}
-
-	// track input wires by name
-	inputWires map[string]struct{}
-
-	// internal logic for responding to changes
-	// does *not* update wires' states; Circuit.ExecuteChanges() will take the changes from this and update states appropriately
-	processChangeLogic func(Change) []Change
-}
-
-// used for setting up cyclic circuits
-func (com *Component) AddInputWire(wireName string) {
-	com.inputWires[wireName] = struct{}{}
-}
-
-func (com *Component) HandleChange(ch Change) []Change {
-	fmt.Println("Input wires for component:")
-	for inputWire := range com.inputWires {
-		fmt.Printf("Wire %v\n", inputWire)
-
-		// fmt.Printf("Wire %v\n", inputWire.Name())
-		// fmt.Printf("  Memory address: %p\n", inputWire)
-	}
-	fmt.Println()
-
-	fmt.Println("Wire from change:")
-	fmt.Printf("Wire %v\n", ch.Wire.Name())
-	// fmt.Printf("  Memory address: %p\n", ch.Wire)
-	// fmt.Println()
-
-	if _, ok := com.inputWires[ch.Wire.Name()]; !ok {
-		fmt.Println("Wire is not an input wire of this component; skipping")
-
-		// the change isn't one of this component's input wires; no changes produced
-		return []Change{}
-	}
-
-	fmt.Println("Processing change")
-
-	return com.processChangeLogic(ch)
-}
-
 type Circuit struct {
 	// TODO - instead of tracking inputWires separately, initialize by setting a single wire (or all wires) to Low, then propagating?
 	// TODO - would allow just having a single AddWire() method instead of Add{Input,Output,Auxiliary}Wire
