@@ -52,6 +52,8 @@ type Circuit struct {
 	wires      map[string]*Wire   // all wires by name; tracked to avoid duplicate wires
 
 	internalWireCount int // used for giving internal wires unique names
+
+	pendingChanges ChangeQueue
 }
 
 func NewCircuit() Circuit {
@@ -60,6 +62,11 @@ func NewCircuit() Circuit {
 		inputWires:        map[*Wire]struct{}{},
 		internalWireCount: 0,
 	}
+}
+
+// TODO - is this needed?
+func (cir *Circuit) IsStable() bool {
+	return cir.pendingChanges.Length() == 0
 }
 
 // return the added wire so callers can refer to it for setting up components
