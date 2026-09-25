@@ -142,3 +142,15 @@ func (w *Wire32) AsUint32() uint32 {
 
 	return value
 }
+
+func (w *Wire32) SetFromUint32(value uint32) {
+	for i := range 32 {
+		// TODO - copy of isBitSet() from circuit_test; pull that out into a package for bit-level utility functions?
+		bitmask := uint32(1) << i
+		if (value & bitmask) != 0 {
+			w.wires[i].SetSignal(High)
+		} else {
+			w.wires[i].SetSignal(Low)
+		}
+	}
+}

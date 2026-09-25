@@ -18,6 +18,30 @@ func (ch Change) String() string {
 	return fmt.Sprintf("%v (t=%v) new value: %v", ch.Wire, ch.Time, ch.Signal)
 }
 
+// create a set of changes for a Wire32 based on `value`
+func Change32(time int, wire *Wire32, value uint32) []Change {
+	changes := make([]Change, 32)
+
+	for i := range 32 {
+		ch := Change{
+			Time: time,
+			Wire: wire.wires[i],
+		}
+
+		// TODO - based on isBitSet() from circuit_test; pull that out into a package for bit-level utility functions?
+		bitmask := uint32(1) << i
+		if (value & bitmask) != 0 {
+			ch.Signal = High
+		} else {
+			ch.Signal = Low
+		}
+
+		changes[i] = ch
+	}
+
+	return changes
+}
+
 // processing delay of a single gate (of any type)
 const gateDelay = 1
 
