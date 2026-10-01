@@ -11,10 +11,11 @@ func TestBasicGates(t *testing.T) {
 	t.Run("NOT gate", func(t *testing.T) {
 		// set up gate
 		cir := circuit.NewCircuit()
+		sim := circuit.NewSimulation(&cir)
 		inWire := cir.AddInputWire("input")
 		outWire := cir.Not(inWire)
 
-		cir.Initialize()
+		sim.Initialize()
 
 		// validate initial output
 		initializedOutput := outWire.Signal()
@@ -26,7 +27,8 @@ func TestBasicGates(t *testing.T) {
 			Wire:   inWire,
 			Signal: circuit.High,
 		}
-		cir.Propagate(highInput)
+		sim.Schedule(highInput)
+		sim.RunUntilStable()
 
 		newOutput := outWire.Signal()
 		assert.Equal(t, circuit.Low, newOutput)
@@ -35,11 +37,12 @@ func TestBasicGates(t *testing.T) {
 	t.Run("AND gate", func(t *testing.T) {
 		// set up gate
 		cir := circuit.NewCircuit()
+		sim := circuit.NewSimulation(&cir)
 		in1 := cir.AddInputWire("input1")
 		in2 := cir.AddInputWire("input2")
 		outWire := cir.And(in1, in2)
 
-		cir.Initialize()
+		sim.Initialize()
 
 		// test that High && Low == Low
 		high1Input := circuit.Change{
@@ -47,7 +50,8 @@ func TestBasicGates(t *testing.T) {
 			Wire:   in1,
 			Signal: circuit.High,
 		}
-		cir.Propagate(high1Input)
+		sim.Schedule(high1Input)
+		sim.RunUntilStable()
 
 		newOutput := outWire.Signal()
 		assert.Equal(t, circuit.Low, newOutput)
@@ -58,7 +62,8 @@ func TestBasicGates(t *testing.T) {
 			Wire:   in2,
 			Signal: circuit.High,
 		}
-		cir.Propagate(high2Input)
+		sim.Schedule(high2Input)
+		sim.RunUntilStable()
 
 		newOutput = outWire.Signal()
 		assert.Equal(t, circuit.High, newOutput)
@@ -69,6 +74,7 @@ func TestSingleBitComponents(t *testing.T) {
 	t.Run("Half adder", func(t *testing.T) {
 		// set up circuit
 		cir := circuit.NewCircuit()
+		sim := circuit.NewSimulation(&cir)
 		in1 := cir.AddInputWire("input1")
 		in2 := cir.AddInputWire("input2")
 		sum, carry := cir.HalfAdder(in1, in2)
@@ -123,7 +129,8 @@ func TestSingleBitComponents(t *testing.T) {
 				},
 			}
 			for _, ch := range changes {
-				cir.Propagate(ch)
+				sim.Schedule(ch)
+				sim.RunUntilStable()
 			}
 
 			actualSum := sum.Signal()
@@ -137,9 +144,10 @@ func TestSingleBitComponents(t *testing.T) {
 func FuzzNot32(f *testing.F) {
 	// set up circuit
 	cir := circuit.NewCircuit()
+	sim := circuit.NewSimulation(&cir)
 	inWire := cir.AddInputWire32("input")
 	outWire := cir.Not32(inWire)
-	cir.Initialize()
+	sim.Initialize()
 
 	testcases := []uint32{
 		uint32(0),
@@ -164,7 +172,8 @@ func FuzzNot32(f *testing.F) {
 		}
 
 		// push input values into circuit
-		cir.Propagate(changes...)
+		sim.Schedule(changes...)
+		sim.RunUntilStable()
 
 		// read and test output values
 		for i := range 32 {
@@ -181,10 +190,11 @@ func FuzzNot32(f *testing.F) {
 func FuzzAnd32(f *testing.F) {
 	// set up circuit
 	cir := circuit.NewCircuit()
+	sim := circuit.NewSimulation(&cir)
 	inWire1 := cir.AddInputWire32("input1")
 	inWire2 := cir.AddInputWire32("input2")
 	outWire := cir.And32(inWire1, inWire2)
-	cir.Initialize()
+	sim.Initialize()
 
 	// seed test corpus
 	f.Add(uint32(0), uint32(0))
@@ -208,7 +218,8 @@ func FuzzAnd32(f *testing.F) {
 		}
 
 		// push input values into circuit
-		cir.Propagate(changes...)
+		sim.Schedule(changes...)
+		sim.RunUntilStable()
 
 		// read and test output values
 		for i := range 32 {
@@ -232,10 +243,11 @@ func FuzzAnd32(f *testing.F) {
 func FuzzFullAdder32(f *testing.F) {
 	// set up circuit
 	cir := circuit.NewCircuit()
+	sim := circuit.NewSimulation(&cir)
 	inWire1 := cir.AddInputWire32("input1")
 	inWire2 := cir.AddInputWire32("input2")
 	sumWire, overflow := cir.FullAdder32(inWire1, inWire2)
-	cir.Initialize()
+	sim.Initialize()
 
 	// seed test corpus
 	f.Add(uint32(0), uint32(0))
@@ -260,7 +272,8 @@ func FuzzFullAdder32(f *testing.F) {
 		}
 
 		// push input values into circuit
-		cir.Propagate(changes...)
+		sim.Schedule(changes...)
+		sim.RunUntilStable()
 
 		// read and test output value
 		expectedValue := uint32(input1 + input2)
