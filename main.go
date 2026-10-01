@@ -33,8 +33,6 @@ func clockCircuit() {
 				fmt.Println(ch)
 			}
 		}
-
-		// fmt.Printf("t=%d: %v\n", tick.Time, tick.Changes)
 	}
 }
 
@@ -90,7 +88,7 @@ func andCircuit() {
 }
 
 func main() {
-	adderCircuit()
-	// clockCircuit()
+	// adderCircuit()
+	clockCircuit()
 	// andCircuit()
 }

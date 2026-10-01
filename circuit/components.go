@@ -104,14 +104,11 @@ func (cir *Circuit) Noop(in *Wire) *Wire {
 	return gate
 }
 
-// TODO - revamp
+// TODO - doesn't currently work if period=1; try and fix this?
 func (cir *Circuit) Clock(period int) *Wire {
 	if period <= 0 {
 		panic(fmt.Sprintf("Unable to create clock with period %v; period must be at least 1", period))
 	}
-
-	// delays := []Component{}
-	// dummyWire := cir.addInternalWire()
 
 	in := cir.addInternalWire() // dummy wire for initial input; will be irrelevant once we set up loopback
 	var out *Wire
