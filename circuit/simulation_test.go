@@ -14,7 +14,7 @@ func TestSimulation(t *testing.T) {
 		in1 := cir.AddInputWire("input1")
 		in2 := cir.AddInputWire("input2")
 		out := cir.And(in1, in2)
-		sim := circuit.NewSimulation(&cir)
+		sim := circuit.NewSimulation(cir)
 		sim.Initialize()
 
 		sim.Schedule(

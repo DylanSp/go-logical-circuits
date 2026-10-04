@@ -51,8 +51,8 @@ type Circuit struct {
 	internalWireCount int // used for giving internal wires unique names
 }
 
-func NewCircuit() Circuit {
-	return Circuit{
+func NewCircuit() *Circuit {
+	return &Circuit{
 		wires:             map[string]*Wire{},
 		inputWires:        map[*Wire]struct{}{},
 		internalWireCount: 0,

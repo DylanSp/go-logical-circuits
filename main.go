@@ -8,7 +8,7 @@ import (
 
 func clockCircuit() {
 	cir := circuit.NewCircuit()
-	sim := circuit.NewSimulation(&cir)
+	sim := circuit.NewSimulation(cir)
 
 	clockOut := cir.Clock(2)
 	sim.Initialize()
@@ -38,7 +38,7 @@ func clockCircuit() {
 
 func adderCircuit() {
 	cir := circuit.NewCircuit()
-	sim := circuit.NewSimulation(&cir)
+	sim := circuit.NewSimulation(cir)
 
 	in1 := cir.AddInputWire32("input1")
 	in2 := cir.AddInputWire32("input2")
@@ -67,7 +67,7 @@ func andCircuit() {
 	in1 := cir.AddInputWire("input1")
 	in2 := cir.AddInputWire("input2")
 	_ = cir.And(in1, in2)
-	sim := circuit.NewSimulation(&cir)
+	sim := circuit.NewSimulation(cir)
 	sim.Initialize()
 
 	sim.Schedule(
