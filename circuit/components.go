@@ -178,3 +178,7 @@ func (cir *Circuit) fallingEdgeFlipFlop(input, clock *Wire) *Wire {
 func (cir *Circuit) FlipFlop(input, clock *Wire) *Wire {
 	return cir.fallingEdgeFlipFlop(input, cir.Not(clock))
 }
+
+func (cir *Circuit) Mux(ifTrue, ifFalse, selector *Wire) *Wire {
+	return cir.Or(cir.And(ifTrue, selector), cir.And(ifFalse, cir.Not(selector)))
+}
