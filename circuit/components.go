@@ -116,7 +116,7 @@ func (cir *Circuit) Clock(period int) *Wire {
 		panic(fmt.Sprintf("Unable to create clock with period %v; period must be at least 1", period))
 	}
 
-	in := cir.addInternalWire() // dummy wire for initial input; will be irrelevant once we set up loopback
+	in := cir.addInternalWire() // dummy wire for initial input when constructing no-ops; will be irrelevant once we set up loopback
 	var out *Wire
 
 	var initialNoop *Wire
