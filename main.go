@@ -62,6 +62,29 @@ func adderCircuit() {
 	fmt.Printf("Overflow: %v\n", overflow.Signal())
 }
 
+func notCircuit() {
+	cir := circuit.NewCircuit()
+	in := cir.AddInputWire("input")
+	out := cir.Not(in)
+
+	sim := circuit.NewSimulation(cir)
+	sim.Initialize()
+
+	fmt.Println("Sim initialized")
+	fmt.Printf("Input: %v\n", in.Signal())
+	fmt.Printf("Output: %v\n", out.Signal())
+	fmt.Println()
+
+	fmt.Println("Setting input to high")
+	sim.Schedule(
+		circuit.Change{Time: 10, Wire: in, Signal: circuit.High},
+	)
+	sim.Tick() // run input changes
+	sim.Tick() // run output changes
+	fmt.Printf("Input: %v\n", in.Signal())
+	fmt.Printf("Output: %v\n", out.Signal())
+}
+
 func andCircuit() {
 	cir := circuit.NewCircuit()
 	in1 := cir.AddInputWire("input1")
@@ -125,5 +148,6 @@ func main() {
 	// adderCircuit()
 	// clockCircuit()
 	// andCircuit()
-	binaryInputChangeCircuit()
+	// notCircuit()
+	// binaryInputChangeCircuit()
 }
