@@ -151,7 +151,7 @@ func flipFlopCircuit() {
 
 	// OTHER IMPORTANT NOTE:
 	// memory leak or something somewhere; simulation slows down as it is stepped forward
-	// debug/profile (check change queue?)
+	// debug/profile (check change queue? maybe have logger use sync.Once (or a package-local mutable global var) so it only checks once?)
 
 	// set up circuit
 	cir := circuit.NewCircuit()
