@@ -137,3 +137,44 @@ func (cir *Circuit) Clock(period int) *Wire {
 
 	return out
 }
+
+// see https://en.wikipedia.org/wiki/Flip-flop_(electronics)#Gated_D_latch
+// diagram (input stage is on the left, output stage on the right; gates numbered top to bottom)
+// https://commons.wikimedia.org/wiki/File:D-Type_Transparent_Latch.svg
+func (cir *Circuit) gatedDLatch(input, clock *Wire) *Wire {
+	// input stage
+	inputStageGate1 := cir.Nand(input, clock)
+	inputStageGate2 := cir.Nand(inputStageGate1, clock)
+
+	// dummy wires for constructing output stage gates;
+	// will be ignored after output gates' inputs are reset
+	dummy1 := cir.addInternalWire()
+	dummy2 := cir.addInternalWire()
+
+	// output stage (SR NAND latch)
+	outputStageGate1 := cir.Nand(dummy1, dummy2)
+	outputStageGate2 := cir.Nand(dummy1, dummy2)
+
+	// set output stage inputs to their proper values, looping back
+	outputStageGate1.SetInputs(inputStageGate1, outputStageGate2)
+	outputStageGate2.SetInputs(outputStageGate1, inputStageGate2)
+
+	return outputStageGate1
+}
+
+// Master–slave edge-triggered D flip-flop, using Wikipedia's terminology
+// stores a value on the *falling* edge of the clock
+// see https://en.wikipedia.org/wiki/Flip-flop_(electronics)#Master%E2%80%93slave_edge-triggered_D_flip-flop
+// diagram of rising-edge version: https://commons.wikimedia.org/wiki/File:D-Type_Flip-flop_Diagram.svg
+// (fallingEdgeFlipFlop doesn't have the first NOT on C/clock input)
+func (cir *Circuit) fallingEdgeFlipFlop(input, clock *Wire) *Wire {
+	latch1 := cir.gatedDLatch(input, clock)
+	notClock := cir.Not(clock)
+	latch2 := cir.gatedDLatch(latch1, notClock)
+	return latch2
+}
+
+// stores a value on the *rising* edge of the clock
+func (cir *Circuit) FlipFlop(input, clock *Wire) *Wire {
+	return cir.fallingEdgeFlipFlop(input, cir.Not(clock))
+}

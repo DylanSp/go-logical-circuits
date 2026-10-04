@@ -144,10 +144,186 @@ func binaryInputChangeCircuit() {
 	}
 }
 
+func flipFlopCircuit() {
+	// IMPORTANT NOTE FOR DEBUG/TEST CODE:
+	// if manually using .Tick(), make sure the number of Tick() calls matches up with the time on scheduled changes
+	// need to run for 100 Ticks before changes scheduled at Time=100 will be executed!
+
+	// OTHER IMPORTANT NOTE:
+	// memory leak or something somewhere; simulation slows down as it is stepped forward
+	// debug/profile (check change queue?)
+
+	// set up circuit
+	cir := circuit.NewCircuit()
+	input := cir.AddInputWire("input")
+	// input := cir.AddWire("input")
+
+	clock := cir.AddInputWire("clock") // will be manually controlled for testing instead of an actual clock
+	// clock := cir.AddWire("clock")
+	output := cir.FlipFlop(input, clock)
+
+	sim := circuit.NewSimulation(cir)
+	// manually initialize; sim.Initialize() will loop forever beacuse we don't currently discard no-op changes
+	sim.Schedule(
+		circuit.Change{
+			Time:   0,
+			Wire:   input,
+			Signal: circuit.Low,
+		},
+		// run clock through a full cycle to stabilize flip-flop in a known & valid state
+		circuit.Change{
+			Time:   5,
+			Wire:   clock,
+			Signal: circuit.Low,
+		},
+		circuit.Change{
+			Time:   10,
+			Wire:   clock,
+			Signal: circuit.High,
+		},
+		circuit.Change{
+			Time:   15,
+			Wire:   clock,
+			Signal: circuit.Low,
+		},
+	)
+
+	// let the initial values propagate until circuit stabilizes
+	// (though Tick doesn't have any logic to ignore no-op changes after initialization, so changes will still be happening)
+	for range 100 {
+		sim.Tick()
+	}
+
+	fmt.Printf("Output value after 100 ticks: %v\n", output.Signal())
+	sim.Tick()
+
+	// fmt.Printf("Output value for the next several ticks:\n")
+	// for i := range 20 {
+	// 	sim.Tick()
+	// 	fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
+	// }
+
+	// return
+
+	// set input to high; should be ignored by flip-flop, because clock remains low
+	sim.Schedule(
+		circuit.Change{
+			Time:   100,
+			Wire:   input,
+			Signal: circuit.High,
+		},
+	)
+	fmt.Println("Setting input to high, clock is still low")
+	// fmt.Printf("Output value for the next several ticks:\n")
+	// for i := range 10 {
+	for range 100 {
+		sim.Tick()
+		// fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
+	}
+
+	// return
+
+	// set clock to high (clock raising edge); flip-flop should now accept and store High input
+	sim.Schedule(
+		circuit.Change{
+			Time:   200,
+			Wire:   clock,
+			Signal: circuit.High,
+		},
+	)
+
+	// NOTE - takes 5 ticks for output to change
+	fmt.Println("Clock rising edge")
+	// fmt.Printf("Output value for the next several ticks:\n")
+	// for i := range 10 {
+	for range 100 {
+		sim.Tick()
+		// fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
+	}
+
+	// return
+
+	// set input to low, then back to high;
+	// should be ignored by flip-flop and output should remain high, because clock hasn't changed (still high)
+	sim.Schedule(
+		circuit.Change{
+			Time:   200,
+			Wire:   input,
+			Signal: circuit.Low,
+		},
+		circuit.Change{
+			Time:   202,
+			Wire:   input,
+			Signal: circuit.High,
+		},
+	)
+	fmt.Println("Toggling input while clock remains high")
+	// fmt.Printf("Output value for the next several ticks:\n")
+	// for i := range 10 {
+	for range 100 {
+		sim.Tick()
+		// fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
+	}
+
+	// return
+
+	// set clock to low (clock falling edge); output should remain high
+	sim.Schedule(
+		circuit.Change{
+			Time:   300,
+			Wire:   clock,
+			Signal: circuit.Low,
+		})
+
+	// fmt.Printf("Output value for the next several ticks after clock falling edge:\n")
+	// for i := range 10 {
+	for range 100 {
+		sim.Tick()
+		// fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
+	}
+
+	// return
+
+	// set input to low; should be ignored by flip-flop (remaining high), because clock is still low
+	sim.Schedule(
+		circuit.Change{
+			Time:   400,
+			Wire:   input,
+			Signal: circuit.Low,
+		},
+	)
+
+	fmt.Println("Setting input to low, clock is still low")
+	// fmt.Printf("Output value for the next several ticks:\n")
+	// for i := range 10 {
+	for range 100 {
+		sim.Tick()
+		// fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
+	}
+
+	// return
+
+	// set clock to high (rising edge); flip-flop should now grab Low value after 5 ticks
+	sim.Schedule(
+		circuit.Change{
+			Time:   500,
+			Wire:   clock,
+			Signal: circuit.High,
+		},
+	)
+	fmt.Println("Clock rising edge")
+	fmt.Printf("Output value for the next several ticks:\n")
+	for i := range 10 {
+		sim.Tick()
+		fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
+	}
+}
+
 func main() {
 	// adderCircuit()
 	// clockCircuit()
 	// andCircuit()
 	// notCircuit()
 	// binaryInputChangeCircuit()
+	flipFlopCircuit()
 }

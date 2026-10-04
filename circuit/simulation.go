@@ -1,6 +1,13 @@
 package circuit
 
-import "github.com/DylanSp/go-logical-circuits/log"
+import (
+	"fmt"
+	"maps"
+	"math/rand/v2"
+	"slices"
+
+	"github.com/DylanSp/go-logical-circuits/log"
+)
 
 // Tick describes all changes applied during one simulation tick.
 type Tick struct {
@@ -58,30 +65,71 @@ In the simple case of a single gate:
 // All simultaneous changes are applied before their downstream effects are
 // calculated and scheduled.
 func (sim *Simulation) Tick() (Tick, bool) {
+	return sim.tick(false)
+}
+
+func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 	changes, ok := sim.pendingChanges.GetNextChanges()
 	if !ok {
 		return Tick{}, false
+	}
+
+	// only apply changes that actually change the state of a wire
+	var actualChanges []Change
+	if true /* isInitialization */ {
+		// on initialization, don't ignore *any* changes;
+		// all wires start Low, we need to drive initial changes through to make circuit consistent
+		actualChanges = changes
+	} else {
+		for _, ch := range changes {
+			if ch.Signal != ch.Wire.Signal() {
+				actualChanges = append(actualChanges, ch)
+			}
+		}
+	}
+
+	if len(actualChanges) == 0 {
+		return Tick{}, false
+	}
+
+	// check for inconsistent changes
+	changesByWireName := map[string][]Change{}
+	for _, ch := range actualChanges {
+		changesByWireName[ch.Wire.Name()] = append(changesByWireName[ch.Wire.Name()], ch)
+	}
+
+	for wire, wireChanges := range changesByWireName {
+		if len(wireChanges) < 2 {
+			continue
+		}
+
+		initialChangeValue := wireChanges[0].Signal
+		for _, wireChange := range wireChanges[1:] {
+			if wireChange.Signal != initialChangeValue {
+				panic(fmt.Sprintf("Conflicting changes for wire %v at time %v; aborting", wire, wireChange.Time))
+			}
+		}
 	}
 
 	// Apply the complete state transition for this timestamp first.
 	// TODO - deduplicate identical changes?
 	// TODO - how to handle inconsistent changes (the same wire getting set to different values at the same tick)?
 	// maybe just panic if there are inconsistent changes, since that indicates a non-well-formed circuit?
-	for _, change := range changes {
-		log.Logf("Executing change at t=%v, changing wire %v to %v\n", change.Time, change.Wire, change.Signal)
-		change.Wire.SetSignal(change.Signal)
+	for _, ch := range actualChanges {
+		log.Logf("Executing change at t=%v, changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
+		ch.Wire.SetSignal(ch.Signal)
 	}
 
 	// Calculate downstream effects only after all simultaneous changes apply.
-	for _, change := range changes {
+	for _, ch := range actualChanges {
 		for _, wire := range sim.circuit.wires {
-			sim.Schedule(wire.HandleChange(change)...)
+			sim.Schedule(wire.HandleChange(ch)...)
 		}
 	}
 
 	return Tick{
-		Time:    changes[0].Time,
-		Changes: changes,
+		Time:    actualChanges[0].Time,
+		Changes: actualChanges,
 	}, true
 }
 
@@ -98,7 +146,27 @@ func (sim *Simulation) RunUntilStable() {
 
 // Initialize drives every circuit input Low and propagates those changes.
 func (sim *Simulation) Initialize() {
-	for inputWire := range sim.circuit.inputWires {
+	var initialWires []*Wire
+
+	if true /* len(sim.circuit.inputWires) != 0 */ {
+		// if we have input wires set, use them
+		initialWires = slices.Collect(maps.Keys(sim.circuit.inputWires))
+	} else {
+		// no input wires are set
+
+		// if we don't have any wires at all, bail out
+		if len(sim.circuit.wires) == 0 {
+			return
+		}
+
+		// pick a random wire and start with that
+		allWires := slices.Collect(maps.Values(sim.circuit.wires))
+		initialWires = []*Wire{
+			allWires[rand.IntN(len(allWires))],
+		}
+	}
+
+	for _, inputWire := range initialWires {
 		sim.Schedule(Change{
 			Time:   0,
 			Wire:   inputWire,
@@ -106,5 +174,10 @@ func (sim *Simulation) Initialize() {
 		})
 	}
 
-	sim.RunUntilStable()
+	for {
+		_, ok := sim.tick(true)
+		if !ok {
+			return
+		}
+	}
 }
