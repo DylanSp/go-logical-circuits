@@ -2,8 +2,6 @@ package circuit
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 )
 
 type Signal bool
@@ -61,12 +59,6 @@ func (w *Wire) IsHigh() bool {
 
 func (w *Wire) SetSignal(newSignal Signal) {
 	w.signal = newSignal
-}
-
-// return inputs as a slice so they can be more easily referenced;
-// order will be unspecified
-func (w *Wire) allInputs() []*Wire {
-	return slices.Collect(maps.Values(w.inputWires))
 }
 
 // TODO - is this needed?

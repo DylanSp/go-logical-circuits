@@ -1,6 +1,10 @@
 package circuit
 
-import "fmt"
+import (
+	"fmt"
+	"maps"
+	"slices"
+)
 
 func (cir *Circuit) Not(in *Wire) *Wire {
 	gate := cir.addInternalWire()
@@ -25,7 +29,7 @@ func binaryGateFactory(truthTable func(Signal, Signal) Signal) func(*Circuit, *W
 		gate.SetInputs(in1, in2)
 
 		gate.processChangeLogic = func(ch Change) []Change {
-			currentInputs := gate.allInputs()
+			currentInputs := slices.Collect(maps.Values(gate.inputWires))
 
 			return []Change{
 				{
