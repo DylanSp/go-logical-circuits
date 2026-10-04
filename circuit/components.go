@@ -25,11 +25,13 @@ func binaryGateFactory(truthTable func(Signal, Signal) Signal) func(*Circuit, *W
 		gate.SetInputs(in1, in2)
 
 		gate.processChangeLogic = func(ch Change) []Change {
+			currentInputs := gate.allInputs()
+
 			return []Change{
 				{
 					Time:   ch.Time + gateDelay,
 					Wire:   gate,
-					Signal: truthTable(in1.Signal(), in2.Signal()),
+					Signal: truthTable(currentInputs[0].Signal(), currentInputs[1].Signal()),
 				},
 			}
 		}

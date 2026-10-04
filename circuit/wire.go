@@ -2,6 +2,8 @@ package circuit
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 )
 
 type Signal bool
@@ -24,7 +26,7 @@ type Wire struct {
 	signal Signal
 
 	// track input wires by name
-	inputWires map[string]struct{}
+	inputWires map[string]*Wire
 
 	// internal logic for responding to changes
 	// does *not* update wires' states; Circuit.ExecuteChanges() will take the changes from this and update states appropriately
@@ -35,7 +37,7 @@ func NewWire(name string) *Wire {
 	return &Wire{
 		name:       name,
 		signal:     Low,
-		inputWires: map[string]struct{}{},
+		inputWires: map[string]*Wire{},
 	}
 }
 
@@ -61,18 +63,24 @@ func (w *Wire) SetSignal(newSignal Signal) {
 	w.signal = newSignal
 }
 
+// return inputs as a slice so they can be more easily referenced;
+// order will be unspecified
+func (w *Wire) allInputs() []*Wire {
+	return slices.Collect(maps.Values(w.inputWires))
+}
+
 // TODO - is this needed?
 // adds an input wire to existing inputs
 func (w *Wire) AddInput(newInput *Wire) {
-	w.inputWires[newInput.Name()] = struct{}{}
+	w.inputWires[newInput.Name()] = newInput
 }
 
 // resets input wires to the new inputs
 func (w *Wire) SetInputs(newInputs ...*Wire) {
-	w.inputWires = map[string]struct{}{}
+	w.inputWires = map[string]*Wire{}
 
 	for _, in := range newInputs {
-		w.inputWires[in.Name()] = struct{}{}
+		w.inputWires[in.Name()] = in
 	}
 }
 
