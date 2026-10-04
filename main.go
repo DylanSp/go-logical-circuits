@@ -87,8 +87,43 @@ func andCircuit() {
 	}
 }
 
+func binaryInputChangeCircuit() {
+	cir := circuit.NewCircuit()
+	in1 := cir.AddInputWire("input1")
+	in2 := cir.AddInputWire("input2")
+	in3 := cir.AddInputWire("input3")
+	gate := cir.And(in1, in2)
+
+	sim := circuit.NewSimulation(cir)
+	sim.Initialize()
+	sim.RunUntilStable()
+
+	gate.SetInputs(in2, in3) // remove in1, add in3
+
+	// if changing inputs with .SetInputs works correctly, this should drive gate high;
+	// if it doesn't, it'll be held low by in1
+	sim.Schedule(
+		circuit.Change{Time: 10, Wire: in2, Signal: circuit.High},
+		circuit.Change{Time: 11, Wire: in3, Signal: circuit.High},
+	)
+
+	// run input changes
+	sim.Tick() // in2 change
+	sim.Tick() // in3 change (change from in2 will propagate to gate)
+
+	outputTick, _ := sim.Tick() // change from in3 propagates to gate
+	fmt.Printf("Number of changes in outputTick: %v\n", len(outputTick.Changes))
+	fmt.Printf("outputTick time: %v\n", outputTick.Time)
+	for i, ch := range outputTick.Changes {
+		fmt.Printf("Change %v\n", i)
+		fmt.Println(ch)
+		fmt.Println()
+	}
+}
+
 func main() {
 	// adderCircuit()
-	clockCircuit()
+	// clockCircuit()
 	// andCircuit()
+	binaryInputChangeCircuit()
 }

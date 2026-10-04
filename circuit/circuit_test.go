@@ -141,6 +141,40 @@ func TestSingleBitComponents(t *testing.T) {
 	})
 }
 
+func TestSetInputs(t *testing.T) {
+	cir := circuit.NewCircuit()
+	in1 := cir.AddInputWire("input1")
+	in2 := cir.AddInputWire("input2")
+	in3 := cir.AddInputWire("input3")
+	gate := cir.And(in1, in2)
+
+	sim := circuit.NewSimulation(cir)
+	sim.Initialize()
+	sim.RunUntilStable()
+
+	high2Input := circuit.Change{
+		Time:   10,
+		Wire:   in2,
+		Signal: circuit.High,
+	}
+	sim.Schedule(high2Input)
+	sim.RunUntilStable()
+
+	// remove in1, add in3 from AND gate's inputs
+	gate.SetInputs(in2, in3)
+
+	// if SetInputs correctly reset gate's inputs, this should drive gate High
+	high3Input := circuit.Change{
+		Time:   20,
+		Wire:   in3,
+		Signal: circuit.High,
+	}
+	sim.Schedule(high3Input)
+	sim.RunUntilStable()
+
+	assert.Equal(t, circuit.High, gate.Signal())
+}
+
 func FuzzNot32(f *testing.F) {
 	// set up circuit
 	cir := circuit.NewCircuit()
