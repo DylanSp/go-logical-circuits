@@ -67,10 +67,6 @@ In the simple case of a single gate:
 // All simultaneous changes are applied before their downstream effects are
 // calculated and scheduled.
 func (sim *Simulation) Tick() (Tick, bool) {
-	return sim.tick(false)
-}
-
-func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 	startTime := time.Now()
 
 	changes, ok := sim.pendingChanges.GetNextChanges()
@@ -80,30 +76,12 @@ func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 		return Tick{}, false
 	}
 
-	// only apply changes that actually change the state of a wire
-	var actualChanges []Change
-	if true /* isInitialization */ {
-		// on initialization, don't ignore *any* changes;
-		// all wires start Low, we need to drive initial changes through to make circuit consistent
-		actualChanges = changes
-	} else {
-		for _, ch := range changes {
-			if ch.Signal != ch.Wire.Signal() {
-				actualChanges = append(actualChanges, ch)
-			}
-		}
-	}
-
-	if len(actualChanges) == 0 {
-		duration := time.Since(startTime)
-		metrics.RecordTick(changes[0].Time, duration, 0)
-
-		return Tick{}, false
-	}
+	// apply all changes, don't try and eliminate no-ops here, to avoid bugs when initializing;
+	// we'll eliminate no-ops when scheduling downstream changes
 
 	// check for inconsistent changes
 	changesByWireName := map[string][]Change{}
-	for _, ch := range actualChanges {
+	for _, ch := range changes {
 		changesByWireName[ch.Wire.Name()] = append(changesByWireName[ch.Wire.Name()], ch)
 	}
 
@@ -122,15 +100,13 @@ func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 
 	// Apply the complete state transition for this timestamp first.
 	// TODO - deduplicate identical changes?
-	// TODO - how to handle inconsistent changes (the same wire getting set to different values at the same tick)?
-	// maybe just panic if there are inconsistent changes, since that indicates a non-well-formed circuit?
-	for _, ch := range actualChanges {
+	for _, ch := range changes {
 		log.Logf("Executing change at t=%v, changing wire %v to %v\n", ch.Time, ch.Wire, ch.Signal)
 		ch.Wire.SetSignal(ch.Signal)
 	}
 
 	// Calculate downstream effects only after all simultaneous changes apply.
-	for _, ch := range actualChanges {
+	for _, ch := range changes {
 		for _, wire := range sim.circuit.wires {
 			downstreamChanges := wire.HandleChange(ch)
 
@@ -148,17 +124,15 @@ func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 					sim.Schedule(downstream)
 				}
 			}
-
-			// sim.Schedule(wire.HandleChange(ch)...)
 		}
 	}
 
 	duration := time.Since(startTime)
-	metrics.RecordTick(actualChanges[0].Time, duration, len(actualChanges))
+	metrics.RecordTick(changes[0].Time, duration, len(changes))
 
 	return Tick{
-		Time:    actualChanges[0].Time,
-		Changes: actualChanges,
+		Time:    changes[0].Time,
+		Changes: changes,
 	}, true
 }
 
@@ -203,10 +177,5 @@ func (sim *Simulation) Initialize() {
 		})
 	}
 
-	for {
-		_, ok := sim.tick(true)
-		if !ok {
-			return
-		}
-	}
+	sim.RunUntilStable()
 }
