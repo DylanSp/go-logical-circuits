@@ -18,6 +18,7 @@ func clockCircuit() {
 
 	fmt.Println("Done initializing")
 
+	// necessary to get clock started, since it doesn't have any input wires
 	initialChange := circuit.Change{
 		Time:   0,
 		Wire:   clockOut,
@@ -328,9 +329,9 @@ func dumpMetrics() {
 
 func main() {
 	// adderCircuit()
-	// clockCircuit()
+	clockCircuit()
 	// andCircuit()
 	// notCircuit()
 	// binaryInputChangeCircuit()
-	flipFlopCircuit()
+	// flipFlopCircuit()
 }

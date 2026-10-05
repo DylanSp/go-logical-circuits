@@ -111,6 +111,7 @@ func (cir *Circuit) Noop(in *Wire) *Wire {
 }
 
 // TODO - doesn't currently work if period=1; try and fix this?
+// currently needs a manual change to be applied to its output wire (which is also the loopback wire) to start it
 func (cir *Circuit) Clock(period int) *Wire {
 	if period <= 0 {
 		panic(fmt.Sprintf("Unable to create clock with period %v; period must be at least 1", period))
