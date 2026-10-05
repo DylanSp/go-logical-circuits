@@ -152,10 +152,6 @@ func flipFlopCircuit() {
 	// if manually using .Tick(), make sure the number of Tick() calls matches up with the time on scheduled changes
 	// need to run for 100 Ticks before changes scheduled at Time=100 will be executed!
 
-	// OTHER IMPORTANT NOTE:
-	// memory leak or something somewhere; simulation slows down as it is stepped forward
-	// debug/profile (check change queue? maybe have logger use sync.Once (or a package-local mutable global var) so it only checks once?)
-
 	// set up circuit
 	cir := circuit.NewCircuit()
 	input := cir.AddInputWire("input")

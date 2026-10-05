@@ -132,7 +132,24 @@ func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 	// Calculate downstream effects only after all simultaneous changes apply.
 	for _, ch := range actualChanges {
 		for _, wire := range sim.circuit.wires {
-			sim.Schedule(wire.HandleChange(ch)...)
+			downstreamChanges := wire.HandleChange(ch)
+
+			// optimization - if a downstream change wouldn't actually change the value of a wire,
+			// (because that wire is already set to that value)
+			// ignore it
+			// TODO - check for conflicting changes here?
+			// if we don't check, conflicting changes coming from the same source will be ignored;
+			// the changes matching the wire's current value will be filtered out,
+			// while the changes that don't match will be scheduled
+			// However, this shouldn't be very likely,
+			// a single component would have to have conflicting changes from one call to processChangeLogic()
+			for _, downstream := range downstreamChanges {
+				if downstream.Signal != downstream.Wire.Signal() {
+					sim.Schedule(downstream)
+				}
+			}
+
+			// sim.Schedule(wire.HandleChange(ch)...)
 		}
 	}
 
