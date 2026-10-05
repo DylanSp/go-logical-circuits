@@ -5,8 +5,10 @@ import (
 	"maps"
 	"math/rand/v2"
 	"slices"
+	"time"
 
 	"github.com/DylanSp/go-logical-circuits/log"
+	"github.com/DylanSp/go-logical-circuits/metrics"
 )
 
 // Tick describes all changes applied during one simulation tick.
@@ -69,8 +71,12 @@ func (sim *Simulation) Tick() (Tick, bool) {
 }
 
 func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
+	startTime := time.Now()
+
 	changes, ok := sim.pendingChanges.GetNextChanges()
 	if !ok {
+		// no pending changes this tick, no metrics to record
+
 		return Tick{}, false
 	}
 
@@ -89,6 +95,9 @@ func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 	}
 
 	if len(actualChanges) == 0 {
+		duration := time.Since(startTime)
+		metrics.RecordTick(changes[0].Time, duration, 0)
+
 		return Tick{}, false
 	}
 
@@ -126,6 +135,9 @@ func (sim *Simulation) tick(isInitialization bool) (Tick, bool) {
 			sim.Schedule(wire.HandleChange(ch)...)
 		}
 	}
+
+	duration := time.Since(startTime)
+	metrics.RecordTick(actualChanges[0].Time, duration, len(actualChanges))
 
 	return Tick{
 		Time:    actualChanges[0].Time,

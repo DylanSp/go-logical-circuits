@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/DylanSp/go-logical-circuits/circuit"
+	"github.com/DylanSp/go-logical-circuits/metrics"
 )
 
 func clockCircuit() {
@@ -317,6 +320,15 @@ func flipFlopCircuit() {
 		sim.Tick()
 		fmt.Printf("After %v more ticks: %v\n", i+1, output.Signal())
 	}
+
+	dumpMetrics()
+}
+
+func dumpMetrics() {
+	workingDirectory, _ := os.Getwd()
+	metricsFileName := filepath.Join(workingDirectory, "metrics.log")
+	fmt.Printf("Writing metrics to: %v\n", metricsFileName)
+	metrics.WriteToFile(metricsFileName)
 }
 
 func main() {
