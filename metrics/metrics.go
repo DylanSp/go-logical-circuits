@@ -42,7 +42,7 @@ func WriteToFile(filename string) {
 	defer file.Close()
 
 	for _, line := range globalRecorder.data {
-		lineString := fmt.Sprintf("%v,%v,%v\n", line.tickNumber, line.duration.Microseconds(), line.changesProcessed)
+		lineString := fmt.Sprintf("%v;%v;%v\n", line.tickNumber, line.duration.Microseconds(), line.changesProcessed)
 		file.WriteString(lineString)
 	}
 	file.Sync()

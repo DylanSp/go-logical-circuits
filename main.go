@@ -250,12 +250,12 @@ func flipFlopCircuit() {
 	// should be ignored by flip-flop and output should remain high, because clock hasn't changed (still high)
 	sim.Schedule(
 		circuit.Change{
-			Time:   200,
+			Time:   300,
 			Wire:   input,
 			Signal: circuit.Low,
 		},
 		circuit.Change{
-			Time:   202,
+			Time:   302,
 			Wire:   input,
 			Signal: circuit.High,
 		},
@@ -273,7 +273,7 @@ func flipFlopCircuit() {
 	// set clock to low (clock falling edge); output should remain high
 	sim.Schedule(
 		circuit.Change{
-			Time:   300,
+			Time:   400,
 			Wire:   clock,
 			Signal: circuit.Low,
 		})
@@ -290,7 +290,7 @@ func flipFlopCircuit() {
 	// set input to low; should be ignored by flip-flop (remaining high), because clock is still low
 	sim.Schedule(
 		circuit.Change{
-			Time:   400,
+			Time:   500,
 			Wire:   input,
 			Signal: circuit.Low,
 		},
@@ -309,7 +309,7 @@ func flipFlopCircuit() {
 	// set clock to high (rising edge); flip-flop should now grab Low value after 5 ticks
 	sim.Schedule(
 		circuit.Change{
-			Time:   500,
+			Time:   600,
 			Wire:   clock,
 			Signal: circuit.High,
 		},
