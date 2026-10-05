@@ -155,21 +155,21 @@ func flipFlopCircuit() {
 	// set up circuit
 	cir := circuit.NewCircuit()
 	input := cir.AddInputWire("input")
-	// input := cir.AddWire("input")
 
 	clock := cir.AddInputWire("clock") // will be manually controlled for testing instead of an actual clock
-	// clock := cir.AddWire("clock")
 	output := cir.FlipFlop(input, clock)
 
 	sim := circuit.NewSimulation(cir)
-	// manually initialize; sim.Initialize() will loop forever beacuse we don't currently discard no-op changes
+	sim.Initialize()
+
+	// ensure input is set to Low,
+	// run clock through a full cycle to stabilize flip-flop in a known & valid state (storing & outputting Low)
 	sim.Schedule(
 		circuit.Change{
 			Time:   0,
 			Wire:   input,
 			Signal: circuit.Low,
 		},
-		// run clock through a full cycle to stabilize flip-flop in a known & valid state
 		circuit.Change{
 			Time:   5,
 			Wire:   clock,
@@ -188,7 +188,6 @@ func flipFlopCircuit() {
 	)
 
 	// let the initial values propagate until circuit stabilizes
-	// (though Tick doesn't have any logic to ignore no-op changes after initialization, so changes will still be happening)
 	for range 100 {
 		sim.Tick()
 	}

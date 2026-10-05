@@ -139,6 +139,141 @@ func TestSingleBitComponents(t *testing.T) {
 			assert.EqualValues(t, tc.expectedCarry, actualCarry)
 		}
 	})
+
+	t.Run("Flip-flop", func(t *testing.T) {
+		// IMPORTANT NOTE FOR DEBUG/TEST CODE:
+		// if manually using .Tick(), make sure the number of Tick() calls matches up with the time on scheduled changes
+		// need to run for 100 Ticks before changes scheduled at Time=100 will be executed!
+
+		// set up circuit
+		cir := circuit.NewCircuit()
+		input := cir.AddInputWire("input")
+
+		clock := cir.AddInputWire("clock") // will be manually controlled for testing instead of an actual clock
+		output := cir.FlipFlop(input, clock)
+
+		sim := circuit.NewSimulation(cir)
+		sim.Initialize()
+
+		// ensure input is set to Low,
+		// run clock through a full cycle to stabilize flip-flop in a known & valid state (storing & outputting Low)
+		sim.Schedule(
+			circuit.Change{
+				Time:   0,
+				Wire:   input,
+				Signal: circuit.Low,
+			},
+
+			circuit.Change{
+				Time:   5,
+				Wire:   clock,
+				Signal: circuit.Low,
+			},
+			circuit.Change{
+				Time:   10,
+				Wire:   clock,
+				Signal: circuit.High,
+			},
+			circuit.Change{
+				Time:   15,
+				Wire:   clock,
+				Signal: circuit.Low,
+			},
+		)
+
+		// let the initial values propagate until circuit stabilizes
+		for range 100 {
+			sim.Tick()
+		}
+
+		assert.EqualValues(t, circuit.Low, output.Signal(), "Output should be Low after stabilizing clock and running 100 ticks")
+
+		// set input to high; should be ignored by flip-flop, because clock remains low
+		sim.Schedule(
+			circuit.Change{
+				Time:   100,
+				Wire:   input,
+				Signal: circuit.High,
+			},
+		)
+		for range 100 {
+			sim.Tick()
+		}
+
+		assert.EqualValues(t, circuit.Low, output.Signal(), "Output should still be Low after setting input High while clock remains Low")
+
+		// set clock to high (clock raising edge); flip-flop should now accept and store High input
+		sim.Schedule(
+			circuit.Change{
+				Time:   200,
+				Wire:   clock,
+				Signal: circuit.High,
+			},
+		)
+		for range 100 {
+			sim.Tick()
+		}
+
+		assert.EqualValues(t, circuit.High, output.Signal(), "Output should be High after clock raising edge with High input")
+
+		// set input to low;
+		// should be ignored by flip-flop and output should remain high, because clock hasn't changed (still high)
+		sim.Schedule(
+			circuit.Change{
+				Time:   300,
+				Wire:   input,
+				Signal: circuit.Low,
+			},
+		)
+		for range 100 {
+			sim.Tick()
+		}
+
+		assert.EqualValues(t, circuit.High, output.Signal(), "Output should still be High after setting input Low while clock remains High")
+
+		// set clock to low (clock falling edge); output should remain high
+		sim.Schedule(
+			circuit.Change{
+				Time:   400,
+				Wire:   clock,
+				Signal: circuit.Low,
+			})
+
+		for range 100 {
+			sim.Tick()
+		}
+
+		assert.EqualValues(t, circuit.High, output.Signal(), "Output should still be High on clock falling edge, even with input Low")
+
+		// set input to low; should be ignored by flip-flop (remaining high), because clock is still low
+		sim.Schedule(
+			circuit.Change{
+				Time:   500,
+				Wire:   input,
+				Signal: circuit.Low,
+			},
+		)
+
+		for range 100 {
+			sim.Tick()
+		}
+
+		assert.EqualValues(t, circuit.High, output.Signal(), "Output should still be High after setting input Low while clock remains Low")
+
+		sim.Schedule(
+			circuit.Change{
+				Time:   600,
+				Wire:   clock,
+				Signal: circuit.High,
+			},
+		)
+
+		for range 100 {
+			sim.Tick()
+		}
+
+		assert.EqualValues(t, circuit.Low, output.Signal(), "Output should be Low after clock raising edge with Low input")
+	})
 }
 
 func TestSetInputs(t *testing.T) {
