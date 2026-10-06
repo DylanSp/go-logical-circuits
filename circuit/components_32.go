@@ -73,3 +73,14 @@ func (cir *Circuit) FullAdder32(in1, in2 *Wire32) (*Wire32, *Wire) {
 	// overflow detection - instead of connecting carry from last full adder to another adder, use it as overflow output
 	return sumOut, carry
 }
+
+// multiplexer between 2 32-bit wires with a single-bit selector
+func (cir *Circuit) Mux32(ifTrue, ifFalse *Wire32, selector *Wire) *Wire32 {
+	outWires := [32]*Wire{}
+
+	for i := range 32 {
+		outWires[i] = cir.Mux(ifTrue.Wire(i), ifFalse.Wire(i), selector)
+	}
+
+	return cir.addInternalWire32FromSingleWires(outWires)
+}
