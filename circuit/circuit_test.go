@@ -1,10 +1,12 @@
 package circuit_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/DylanSp/go-logical-circuits/circuit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasicGates(t *testing.T) {
@@ -276,6 +278,140 @@ func TestSingleBitComponents(t *testing.T) {
 	})
 }
 
+func Test32BitComponents(t *testing.T) {
+	t.Run("Single-bit multiplexer", func(t *testing.T) {
+		cir := circuit.NewCircuit()
+		inWire0 := cir.AddInputWire32("in0")
+		inWire1 := cir.AddInputWire32("in1")
+		selector := cir.AddInputWire("sel")
+		mux := cir.Mux32(inWire1, inWire0, selector)
+
+		sim := circuit.NewSimulation(cir)
+		sim.Initialize()
+
+		input0Value := uint32(0)
+		input1Value := uint32(1)
+
+		// inputChanges := []circuit.Change{}
+		input0Changes := inWire0.ChangesFromUint32(input0Value, 0)
+		input1Changes := inWire1.ChangesFromUint32(input1Value, 0)
+		sim.Schedule(input0Changes...)
+		sim.Schedule(input1Changes...)
+
+		// set selector to 0; output should be input0
+		sim.Schedule(circuit.Change{
+			Time:   1,
+			Wire:   selector,
+			Signal: circuit.Low,
+		})
+		sim.RunUntilStable()
+		assert.EqualValues(t, input0Value, mux.AsUint32())
+
+		// set selector to 1; output should be input1
+		sim.Schedule(circuit.Change{
+			Time:   2,
+			Wire:   selector,
+			Signal: circuit.High,
+		})
+		sim.RunUntilStable()
+		assert.EqualValues(t, input1Value, mux.AsUint32())
+	})
+
+	t.Run("N-bit multiplexer", func(t *testing.T) {
+		cir := circuit.NewCircuit()
+		inWire0 := cir.AddInputWire32("in0")
+		inWire1 := cir.AddInputWire32("in1")
+		inWire2 := cir.AddInputWire32("in2")
+		inWire3 := cir.AddInputWire32("in3")
+		inputWires := []*circuit.Wire32{
+			inWire0,
+			inWire1,
+			inWire2,
+			inWire3,
+		}
+
+		selector0 := cir.AddInputWire("sel0")
+		selector1 := cir.AddInputWire("sel1") // most-significant bit of selector
+
+		// Mux32N takes selectors as a big-endian slice
+		selectors := []*circuit.Wire{
+			selector1,
+			selector0,
+		}
+
+		mux, ok := cir.Mux32N(inputWires, selectors)
+		require.True(t, ok)
+
+		sim := circuit.NewSimulation(cir)
+		sim.Initialize()
+
+		inputValues := []uint32{
+			10,
+			1,
+			2,
+			3,
+		}
+
+		testCases := []struct {
+			selector1Value  circuit.Signal
+			selector0Value  circuit.Signal
+			selectedWireNum int
+		}{
+			{
+				selector1Value:  circuit.Low,
+				selector0Value:  circuit.Low,
+				selectedWireNum: 0,
+			},
+			{
+				selector1Value:  circuit.Low,
+				selector0Value:  circuit.High,
+				selectedWireNum: 1,
+			},
+			{
+				selector1Value:  circuit.High,
+				selector0Value:  circuit.Low,
+				selectedWireNum: 2,
+			},
+			{
+				selector1Value:  circuit.High,
+				selector0Value:  circuit.High,
+				selectedWireNum: 3,
+			},
+		}
+
+		for i, tc := range testCases {
+			tcName := fmt.Sprintf("selector=%v", tc.selectedWireNum)
+			t.Run(tcName, func(t *testing.T) {
+				inputChanges := []circuit.Change{}
+
+				for inputNum := range 4 {
+					singleInputChanges := inputWires[inputNum].ChangesFromUint32(inputValues[inputNum], i+1)
+					inputChanges = append(inputChanges, singleInputChanges...)
+				}
+
+				sim.Schedule(inputChanges...)
+
+				sel0Change := circuit.Change{
+					Time:   i + 1,
+					Wire:   selector0,
+					Signal: tc.selector0Value,
+				}
+				sel1Change := circuit.Change{
+					Time:   i + 1,
+					Wire:   selector1,
+					Signal: tc.selector1Value,
+				}
+				sim.Schedule(sel0Change, sel1Change)
+
+				sim.RunUntilStable()
+
+				outputValue := mux.AsUint32()
+				assert.EqualValues(t, inputWires[tc.selectedWireNum].AsUint32(), outputValue)
+			})
+		}
+	})
+}
+
 func TestSetInputs(t *testing.T) {
 	cir := circuit.NewCircuit()
 	in1 := cir.AddInputWire("input1")
@@ -398,8 +534,8 @@ func FuzzAnd32(f *testing.F) {
 			if expectedSignal != actualSignal {
 				t.Errorf(
 					"Error calculating %v AND %v, in wire %v: expected %v, actual %v",
-					input1,
-					input2,
+					inWire1,
+					inWire2,
 					i,
 					expectedSignal,
 					actualSignal,
@@ -451,8 +587,8 @@ func FuzzFullAdder32(f *testing.F) {
 		if expectedValue != actualValue {
 			t.Errorf(
 				"Error calculating %v + %v: expected %v, actual %v",
-				input1,
-				input2,
+				inWire1,
+				inWire2,
 				expectedValue,
 				actualValue,
 			)
@@ -464,8 +600,8 @@ func FuzzFullAdder32(f *testing.F) {
 		if expectedOverflow != actualOverflow {
 			t.Errorf(
 				"Error detecting overflow when calculating %v + %v: expected %v, actual %v",
-				input1,
-				input2,
+				inWire1,
+				inWire2,
 				expectedOverflow,
 				actualOverflow,
 			)

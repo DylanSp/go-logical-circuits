@@ -1,5 +1,7 @@
 package circuit
 
+import "math"
+
 func (cir *Circuit) Not32(in *Wire32) *Wire32 {
 	outWires := [32]*Wire{}
 
@@ -83,4 +85,40 @@ func (cir *Circuit) Mux32(ifTrue, ifFalse *Wire32, selector *Wire) *Wire32 {
 	}
 
 	return cir.addInternalWire32FromSingleWires(outWires)
+}
+
+// multiplexer with an n-bit selector between 2^n 32-bit wires
+// selectors is a big-endian index into inputs; selectors[0] is most-significant bit
+// 2^len(selectors) must equal len(inputs)
+// returns (output wire, true) if construction is valid; returns (nil, false) if invalid
+func (cir *Circuit) Mux32N(inputs []*Wire32, selectors []*Wire) (*Wire32, bool) {
+	if powInt(2, len(selectors)) != len(inputs) {
+		return nil, false
+	}
+
+	if len(selectors) == 0 {
+		return nil, false
+	}
+
+	// base case
+	if len(selectors) == 1 {
+		return cir.Mux32(inputs[1], inputs[0], selectors[0]), true
+	}
+
+	// recursive case
+	// use the most significant selector bit to select between a Mux32N of the top half of `inputs` and a Mux32N of the bottom half
+	// both those use the remaining (n - 1) bits of the selector
+	halfLength := len(inputs) / 2
+	bottomHalf := inputs[:halfLength]
+	topHalf := inputs[halfLength:]
+	remainingSelectors := selectors[1:]
+
+	topHalfMux, _ := cir.Mux32N(topHalf, remainingSelectors)
+	bottomHalfMux, _ := cir.Mux32N(bottomHalf, remainingSelectors)
+
+	return cir.Mux32(topHalfMux, bottomHalfMux, selectors[0]), true
+}
+
+func powInt(base, exponent int) int {
+	return int(math.Pow(float64(base), float64(exponent)))
 }
