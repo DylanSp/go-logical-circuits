@@ -48,3 +48,21 @@ func (cq *ChangeQueue) GetNextChanges() ([]Change, bool) {
 
 	return nextChanges, true
 }
+
+func (cq *ChangeQueue) PeekNextChanges() ([]Change, bool) {
+	if len(cq.agenda) == 0 {
+		return []Change{}, false
+	}
+
+	nextChanges := []Change{cq.agenda[0]}
+
+	// append any other changes with the same time
+	for i := 1; i < len(cq.agenda); i++ {
+		if cq.agenda[i].Time > nextChanges[0].Time {
+			break // cq.agenda is sorted; as soon as we hit a later time, we know *all* remaining changes in cq.agenda also have a later time
+		}
+		nextChanges = append(nextChanges, cq.agenda[i])
+	}
+
+	return nextChanges, true
+}
