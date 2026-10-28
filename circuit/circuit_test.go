@@ -136,58 +136,44 @@ func TestSingleBitComponents(t *testing.T) {
 		sim.ScheduleAhead(clock, circuit.High, 10)
 		sim.ScheduleAhead(clock, circuit.Low, 15)
 
-		// let the initial values propagate until circuit stabilizes
-		for range 100 {
-			sim.Tick()
-		}
+		// let the initial values propagate until circuit stabilizes'
+		sim.TickN(100)
 
 		assert.EqualValues(t, circuit.Low, output.Signal(), "Output should be Low after stabilizing clock and running 100 ticks")
 
 		// set input to high; should be ignored by flip-flop, because clock remains low
 		sim.Schedule(input, circuit.High)
-		for range 100 {
-			sim.Tick()
-		}
+		sim.TickN(100)
 
 		assert.EqualValues(t, circuit.Low, output.Signal(), "Output should still be Low after setting input High while clock remains Low")
 
 		// set clock to high (clock raising edge); flip-flop should now accept and store High input
 		sim.Schedule(clock, circuit.High)
-		for range 100 {
-			sim.Tick()
-		}
+		sim.TickN(100)
 
 		assert.EqualValues(t, circuit.High, output.Signal(), "Output should be High after clock raising edge with High input")
 
 		// set input to low;
 		// should be ignored by flip-flop and output should remain high, because clock hasn't changed (still high)
 		sim.Schedule(input, circuit.Low)
-		for range 100 {
-			sim.Tick()
-		}
+		sim.TickN(100)
 
 		assert.EqualValues(t, circuit.High, output.Signal(), "Output should still be High after setting input Low while clock remains High")
 
 		// set clock to low (clock falling edge); output should remain high
 		sim.Schedule(clock, circuit.Low)
-		for range 100 {
-			sim.Tick()
-		}
+		sim.TickN(100)
 
 		assert.EqualValues(t, circuit.High, output.Signal(), "Output should still be High on clock falling edge, even with input Low")
 
 		// set input to low; should be ignored by flip-flop (remaining high), because clock is still low
 		sim.Schedule(input, circuit.Low)
-		for range 100 {
-			sim.Tick()
-		}
+		sim.TickN(100)
 
 		assert.EqualValues(t, circuit.High, output.Signal(), "Output should still be High after setting input Low while clock remains Low")
 
 		sim.Schedule(clock, circuit.High)
-		for range 100 {
-			sim.Tick()
-		}
+		sim.TickN(100)
 
 		assert.EqualValues(t, circuit.Low, output.Signal(), "Output should be Low after clock raising edge with Low input")
 	})

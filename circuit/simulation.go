@@ -176,6 +176,16 @@ func (sim *Simulation) Tick() (Tick, bool) {
 	}, true
 }
 
+func (sim *Simulation) TickN(ticks int) {
+	if ticks <= 0 {
+		panic(fmt.Sprintf("Invalid attempt to advance by %v ticks; must be a positive number of ticks", ticks))
+	}
+
+	for range ticks {
+		sim.Tick()
+	}
+}
+
 // RunUntilStable processes ticks until no changes remain. It will never return
 // for circuits which continually schedule future changes, such as clocks
 func (sim *Simulation) RunUntilStable() {

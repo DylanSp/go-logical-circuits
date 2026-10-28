@@ -152,9 +152,7 @@ func flipFlopCircuit() {
 	sim.ScheduleAhead(clock, circuit.Low, 15)
 
 	// let the initial values propagate until circuit stabilizes
-	for range 100 {
-		sim.Tick()
-	}
+	sim.TickN(100)
 
 	fmt.Printf("Output value after 100 ticks: %v\n", output.Signal())
 	sim.Tick()
