@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/DylanSp/go-logical-circuits/bits"
 	"github.com/DylanSp/go-logical-circuits/log"
 	"github.com/DylanSp/go-logical-circuits/metrics"
 )
@@ -21,20 +22,41 @@ type Tick struct {
 type Simulation struct {
 	circuit        *Circuit
 	pendingChanges *ChangeQueue
+	currentTime    int
 }
 
 func NewSimulation(circuit *Circuit) *Simulation {
 	return &Simulation{
 		circuit:        circuit,
 		pendingChanges: NewChangeQueue(),
+		currentTime:    0,
 	}
 }
 
-// Schedule adds changes to the simulation's pending agenda.
-func (sim *Simulation) Schedule(changes ...Change) {
-	for _, change := range changes {
-		sim.pendingChanges.AddChange(change)
+func (sim *Simulation) Schedule(wire *Wire, newValue Signal) {
+	sim.ScheduleAhead(wire, newValue, 1)
+}
+
+func (sim *Simulation) Schedule32(wire *Wire32, newValue uint32) {
+	for i := range 32 {
+		if bits.IsBitSet(newValue, i) {
+			sim.Schedule(wire.Wire(i), High)
+		} else {
+			sim.Schedule(wire.Wire(i), Low)
+		}
 	}
+}
+
+func (sim *Simulation) ScheduleAhead(wire *Wire, newValue Signal, ticksAhead int) {
+	if ticksAhead <= 0 {
+		panic(fmt.Sprintf("Invalid attempt to schedule %v ticks ahead; must be positive", ticksAhead))
+	}
+
+	sim.pendingChanges.AddChange(Change{
+		Time:   sim.currentTime + ticksAhead,
+		Wire:   wire,
+		Signal: newValue,
+	})
 }
 
 // IsStable reports whether the simulation has no pending changes.
@@ -63,18 +85,35 @@ In the simple case of a single gate:
 6. Second call to Tick() updates the output wire's value
 */
 
-// Tick advances the simulation to process the next batch of changes.
+// Tick advances the simulation by one time step
+// Any changes scheduled for that timestamp are processed;
 // All simultaneous changes are applied before their downstream effects are
 // calculated and scheduled.
 func (sim *Simulation) Tick() (Tick, bool) {
 	startTime := time.Now()
 
-	changes, ok := sim.pendingChanges.GetNextChanges()
+	sim.currentTime++
+
+	changes, ok := sim.pendingChanges.PeekNextChanges()
 	if !ok {
 		// no pending changes this tick, no metrics to record
 
 		return Tick{}, false
 	}
+
+	if changes[0].Time < sim.currentTime {
+		errMsg := fmt.Sprintf("A change was incorrectly skipped; current simulation time is t=%v, change was scheduled for t=%v", sim.currentTime, changes[0].Time)
+		panic(errMsg)
+	}
+
+	if changes[0].Time > sim.currentTime {
+		// haven't advanced far enough to reach the next scheduled change;
+		// so no pending changes this tick
+		return Tick{}, false
+	}
+
+	// we have changes to process; pop them from the agenda
+	changes, _ = sim.pendingChanges.GetNextChanges()
 
 	// apply all changes, don't try and eliminate no-ops here, to avoid bugs when initializing;
 	// we'll eliminate no-ops when scheduling downstream changes
@@ -121,7 +160,8 @@ func (sim *Simulation) Tick() (Tick, bool) {
 			// a single component would have to have conflicting changes from one call to processChangeLogic()
 			for _, downstream := range downstreamChanges {
 				if downstream.Signal != downstream.Wire.Signal() {
-					sim.Schedule(downstream)
+					// TODO - check downstream.Time to see how far ahead to schedule this?
+					sim.Schedule(downstream.Wire, downstream.Signal)
 				}
 			}
 		}
@@ -170,11 +210,7 @@ func (sim *Simulation) Initialize() {
 	}
 
 	for _, inputWire := range initialWires {
-		sim.Schedule(Change{
-			Time:   0,
-			Wire:   inputWire,
-			Signal: Low,
-		})
+		sim.Schedule(inputWire, Low)
 	}
 
 	sim.RunUntilStable()
